@@ -8,19 +8,25 @@ from app.extensions import db
 
 
 class TimestampMixin:
-    """Provides created and updated timestamps."""
+    """Provides timestamp fields."""
 
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
     updated_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
-        nullable=False
+        nullable=False,
+    )
+
+    deleted_at = db.Column(
+        db.DateTime,
+        nullable=True,
     )
 
 
@@ -30,5 +36,5 @@ class StatusMixin:
     is_active = db.Column(
         db.Boolean,
         default=True,
-        nullable=False
+        nullable=False,
     )
