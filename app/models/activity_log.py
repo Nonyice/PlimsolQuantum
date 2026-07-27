@@ -23,4 +23,7 @@ class ActivityLog(BaseModel):
         db.Text
     )
 
-    user = db.relationship("User")
+    user = db.relationship(
+    "User",
+    back_populates="activity_logs"
+)

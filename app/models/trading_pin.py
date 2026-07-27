@@ -19,7 +19,10 @@ class TradingPin(BaseModel):
         nullable=False
     )
 
-    user = db.relationship("User")
+    user = db.relationship(
+    "User",
+    back_populates="trading_pin"
+)
 
     def set_pin(self, pin):
 

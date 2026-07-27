@@ -1,25 +1,25 @@
 """
 Base model for PlimsolQuantum.
 
-All database models inherit from this class.
+All models inherit from this class.
 """
 
 from __future__ import annotations
 
 import uuid
 
-from datetime import datetime
-
 from sqlalchemy.dialects.postgresql import UUID
 
 from app.extensions import db
+from app.models.mixins import TimestampMixin
+from app.models.mixins import StatusMixin
 
 
-class BaseModel(db.Model):
-    """
-    Abstract base model.
-    """
-
+class BaseModel(
+    TimestampMixin,
+    StatusMixin,
+    db.Model
+):
     __abstract__ = True
 
     id = db.Column(
@@ -29,26 +29,6 @@ class BaseModel(db.Model):
         unique=True,
         nullable=False
     )
-
-    created_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
-
-    updated_at = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        nullable=False
-    )
-
-    is_active = db.Column(
-        db.Boolean,
-        default=True,
-        nullable=False
-    )
-
 
     def __repr__(self):
         return f"<{self.__class__.__name__}>"

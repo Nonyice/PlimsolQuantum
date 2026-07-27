@@ -33,4 +33,7 @@ class EmailToken(BaseModel):
         default=False
     )
 
-    user = db.relationship("User")
+    user = db.relationship(
+    "User",
+    back_populates="email_tokens"
+)

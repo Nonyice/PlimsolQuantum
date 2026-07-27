@@ -30,7 +30,10 @@ class Subscription(BaseModel):
         default=True
     )
 
-    user = db.relationship("User")
+    user = db.relationship(
+    "User",
+    back_populates="subscriptions"
+)
 
     plan = db.relationship(
         "SubscriptionPlan",

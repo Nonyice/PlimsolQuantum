@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: plimsolquantum
+    env: python
+
+    buildCommand: |
+      pip install -r requirements.txt
+      flask db upgrade
+
+    startCommand: gunicorn run:app
+
+    autoDeploy: true

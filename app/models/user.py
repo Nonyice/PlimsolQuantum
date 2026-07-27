@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from flask_login import UserMixin
 
-from app.extensions import db
 from app.extensions import bcrypt
+from app.extensions import db
+
 from app.models.base import BaseModel
 
 
@@ -42,12 +43,14 @@ class User(UserMixin, BaseModel):
 
     email_verified = db.Column(
         db.Boolean,
-        default=False
+        default=False,
+        nullable=False
     )
 
     two_factor_enabled = db.Column(
         db.Boolean,
-        default=False
+        default=False,
+        nullable=False
     )
 
     role_id = db.Column(
@@ -60,14 +63,44 @@ class User(UserMixin, BaseModel):
         back_populates="users"
     )
 
-    def set_password(self, password):
+    subscriptions = db.relationship(
+        "Subscription",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
+    trial = db.relationship(
+        "Trial",
+        uselist=False,
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    trading_pin = db.relationship(
+        "TradingPin",
+        uselist=False,
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    email_tokens = db.relationship(
+        "EmailToken",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    activity_logs = db.relationship(
+        "ActivityLog",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    def set_password(self, password: str) -> None:
         self.password_hash = bcrypt.generate_password_hash(
             password
         ).decode("utf-8")
 
-    def check_password(self, password):
-
+    def check_password(self, password: str) -> bool:
         return bcrypt.check_password_hash(
             self.password_hash,
             password
@@ -75,13 +108,14 @@ class User(UserMixin, BaseModel):
 
     @property
     def is_admin(self):
-
         return self.role.name.lower() == "admin"
 
     def get_id(self):
-
         return str(self.id)
 
-    def __repr__(self):
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
+    def __repr__(self):
         return f"<User {self.username}>"
