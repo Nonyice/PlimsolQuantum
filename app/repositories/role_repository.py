@@ -1,16 +1,14 @@
+from sqlalchemy import select
+
+from app.extensions import db
 from app.models.role import Role
 
-from app.repositories.base_repository import BaseRepository
 
+class RoleRepository:
 
-class RoleRepository(BaseRepository):
+    @staticmethod
+    def get_by_name(name: str):
 
-    def __init__(self):
+        stmt = select(Role).where(Role.name == name)
 
-        super().__init__(Role)
-
-    def get_by_name(self, name):
-
-        return Role.query.filter_by(
-            name=name
-        ).first()
+        return db.session.execute(stmt).scalar_one_or_none()

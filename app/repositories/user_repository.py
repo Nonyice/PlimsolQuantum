@@ -1,30 +1,40 @@
+from sqlalchemy import func
+from sqlalchemy import select
+
+from app.extensions import db
 from app.models.user import User
 
-from app.repositories.base_repository import BaseRepository
 
+class UserRepository:
 
-class UserRepository(BaseRepository):
+    @staticmethod
+    def get_by_email(email: str):
 
-    def __init__(self):
+        stmt = (
+            select(User)
+            .where(
+                func.lower(User.email) == email.lower()
+            )
+        )
 
-        super().__init__(User)
+        return db.session.execute(stmt).scalar_one_or_none()
 
-    def find_by_email(self, email):
+    @staticmethod
+    def get_by_username(username: str):
 
-        return User.query.filter_by(
-            email=email
-        ).first()
+        stmt = (
+            select(User)
+            .where(User.username == username)
+        )
 
-    def find_by_username(self, username):
+        return db.session.execute(stmt).scalar_one_or_none()
 
-        return User.query.filter_by(
-            username=username
-        ).first()
+    @staticmethod
+    def add(user: User):
 
-    def exists_email(self, email):
+        db.session.add(user)
 
-        return self.find_by_email(email) is not None
+    @staticmethod
+    def flush():
 
-    def exists_username(self, username):
-
-        return self.find_by_username(username) is not None
+        db.session.flush()
