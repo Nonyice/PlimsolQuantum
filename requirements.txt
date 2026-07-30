@@ -11,3 +11,4 @@ gunicorn
 email-validator
 cryptography
 itsdangerous
+binance-connector>=3.8.0
