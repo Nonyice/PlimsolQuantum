@@ -1,36 +1,156 @@
-from app.intelligence.observer import MarketObserver
-from app.intelligence.opportunity_engine import OpportunityEngine
-from app.intelligence.decision_engine import DecisionEngine
-from app.intelligence.risk_guardian import RiskGuardian
-from app.intelligence.profit_harvester import ProfitHarvester
+from datetime import datetime
+
+from app.enums.trade_status import TradeStatus
+from app.learning.journal import Journal
+from app.models.trade import Trade
 
 
-class PQI:
+class TradeExecutor:
+    """
+    Executes approved trades.
+
+    PQI decides.
+
+    TradeExecutor executes.
+
+    Journal records.
+    """
 
     def __init__(self):
 
-        self.observer = MarketObserver()
-        self.opportunity = OpportunityEngine()
-        self.decision = DecisionEngine()
-        self.risk = RiskGuardian()
-        self.harvester = ProfitHarvester()
+        self.journal = Journal()
 
-    async def think(self, trading_account):
+    async def execute(
+        self,
+        exchange,
+        trading_account,
+        analysis,
+    ):
 
-        snapshot = await self.observer.observe(trading_account)
+        decision = analysis["decision"]
 
-        opportunity = await self.opportunity.evaluate(snapshot)
+        if not decision["approved"]:
 
-        decision = await self.decision.decide(opportunity)
+            return {
+                "success": False,
+                "message": decision["reason"],
+            }
 
-        approved = await self.risk.approve(
-            trading_account,
-            decision
+        action = decision["action"]
+
+        symbol = decision["symbol"]
+
+        quantity = decision["quantity"]
+
+        if action == "BUY":
+
+            exchange_result = await exchange.place_market_buy(
+                symbol=symbol,
+                quantity=quantity,
+            )
+
+        elif action == "SELL":
+
+            exchange_result = await exchange.place_market_sell(
+                symbol=symbol,
+                quantity=quantity,
+            )
+
+        else:
+
+            return {
+                "success": False,
+                "message": "Unsupported action.",
+            }
+
+        trade = Trade(
+
+            user_id=trading_account.user_id,
+
+            trading_account_id=trading_account.id,
+
+            exchange=trading_account.exchange,
+
+            market_type=trading_account.market_type,
+
+            symbol=symbol,
+
+            timeframe=decision.get("timeframe", "1h"),
+
+            side=action,
+
+            position=decision.get("position", "LONG"),
+
+            leverage=decision.get("leverage", 1),
+
+            risk_percent=decision.get(
+                "risk_percent",
+                1.0,
+            ),
+
+            entry_price=decision["entry_price"],
+
+            stop_loss=decision["stop_loss"],
+
+            take_profit=decision["take_profit"],
+
+            quantity=quantity,
+
+            status=TradeStatus.OPEN,
+
+            opened_at=datetime.utcnow(),
+        )
+
+        self.journal.record_entry(
+
+            trade=trade,
+
+            snapshot=analysis["snapshot"],
+
+            analysis={
+
+                "trend": analysis["trend"],
+
+                "momentum": analysis["momentum"],
+
+                "volume": analysis["volume"],
+
+                "volatility": analysis["volatility"],
+
+                "support": analysis["support"],
+
+                "personality": analysis["personality"],
+
+                "opportunity": analysis["opportunity"],
+
+            },
+
+            decision=decision,
         )
 
         return {
-            "snapshot": snapshot,
-            "opportunity": opportunity,
-            "decision": decision,
-            "approved": approved
+
+            "success": True,
+
+            "trade_id": trade.id,
+
+            "trade_reference": str(
+                trade.trade_reference
+            ),
+
+            "exchange": trading_account.exchange.value,
+
+            "market_type":
+                trading_account.market_type.value,
+
+            "exchange_response":
+                exchange_result,
         }
+
+    async def close_position(
+        self,
+        exchange,
+        symbol,
+    ):
+
+        return await exchange.close_position(symbol)

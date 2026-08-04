@@ -1,0 +1,53 @@
+.sidebar{
+
+width:var(--sidebar);
+
+background:#090d14;
+
+border-right:1px solid var(--border);
+
+display:flex;
+
+flex-direction:column;
+
+justify-content:space-between;
+
+padding:25px 0;
+
+}
+
+.nav-item{
+
+display:flex;
+
+align-items:center;
+
+gap:15px;
+
+padding:14px 25px;
+
+color:var(--muted);
+
+transition:.25s;
+
+}
+
+.nav-item:hover{
+
+background:rgba(0,245,255,.08);
+
+color:white;
+
+border-left:4px solid var(--primary);
+
+}
+
+.version{
+
+padding:25px;
+
+text-align:center;
+
+color:var(--muted);
+
+}

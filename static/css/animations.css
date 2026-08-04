@@ -1,0 +1,27 @@
+@keyframes glow{
+
+0%{
+
+box-shadow:0 0 10px rgba(0,245,255,.15);
+
+}
+
+50%{
+
+box-shadow:0 0 28px rgba(0,245,255,.45);
+
+}
+
+100%{
+
+box-shadow:0 0 10px rgba(0,245,255,.15);
+
+}
+
+}
+
+.logo{
+
+animation:glow 3s infinite;
+
+}

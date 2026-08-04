@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI PORTFOLIO</h2>
+
+    <p>Live Assets Under PQI Management</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>Portfolio Value</h3>
+        <span id="portfolio" class="live-value">$0.00</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Today's P/L</h3>
+        <span id="daily-pnl" class="live-value">$0.00</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Open Positions</h3>
+        <span id="positions" class="live-value">0</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Win Rate</h3>
+        <span id="winrate" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Risk Exposure</h3>
+        <span id="risk" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Connected Exchange</h3>
+        <span id="exchange" class="status-live">--</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>LIVE POSITIONS</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Symbol</th>
+                <th>Side</th>
+                <th>Size</th>
+                <th>Entry</th>
+                <th>Mark</th>
+                <th>P/L</th>
+                <th>Status</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="positions-table">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>ACCOUNT BALANCES</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Asset</th>
+                <th>Balance</th>
+                <th>Available</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="balances-table">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

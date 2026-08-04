@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Signals{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI SIGNALS</h2>
+
+    <p>Live Opportunities Identified by PQI</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>Signals Today</h3>
+        <span id="signals" class="live-value">0</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>PQI Confidence</h3>
+        <span id="confidence" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Market Regime</h3>
+        <span id="regime" class="live-value">--</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>PQI Decision</h3>
+        <span id="decision" class="status-live">WAITING</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>LIVE SIGNAL FEED</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Time</th>
+                <th>Symbol</th>
+                <th>Confidence</th>
+                <th>Decision</th>
+                <th>Status</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="signals-table">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

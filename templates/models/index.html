@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}PQI Models{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI MODELS</h2>
+
+    <p>Decision Engine & Learning Models</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>Active Model</h3>
+        <span id="active-model" class="live-value">PQI Core v1.0</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>PQI Confidence</h3>
+        <span id="confidence" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Learning Status</h3>
+        <span id="learning" class="status-live">ACTIVE</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Optimization</h3>
+        <span id="optimization" class="live-value">READY</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Model Health</h3>
+        <span id="health" class="status-live">OPTIMAL</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Version</h3>
+        <span id="version" class="live-value">1.0.0</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>PQI MODEL STATUS</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Component</th>
+                <th>Status</th>
+                <th>Last Update</th>
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            <tr>
+                <td>Scanner</td>
+                <td>Running</td>
+                <td id="scanner-update">--</td>
+            </tr>
+
+            <tr>
+                <td>Decision Engine</td>
+                <td>Running</td>
+                <td id="decision-update">--</td>
+            </tr>
+
+            <tr>
+                <td>Learning Engine</td>
+                <td>Running</td>
+                <td id="learning-update">--</td>
+            </tr>
+
+            <tr>
+                <td>Risk Guardian</td>
+                <td>Running</td>
+                <td id="risk-update">--</td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

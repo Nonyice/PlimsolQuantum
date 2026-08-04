@@ -1,22 +1,61 @@
-import traceback
 import asyncio
 
 from app.trading.exchanges.binance import BinanceAdapter
 
 
+POPULAR_PAIRS = [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT",
+    "ADAUSDT",
+    "LINKUSDT",
+    "AVAXUSDT",
+    "TRXUSDT"
+]
+
+
 async def main():
-    try:
-        exchange = BinanceAdapter(
-            api_key="",
-            api_secret="",
-            testnet=False
-        )
 
-        price = await exchange.get_market_price("BTCUSDT")
-        print(price)
+    exchange = BinanceAdapter(
+        api_key="",
+        api_secret="",
+        testnet=False
+    )
 
-    except Exception:
-        traceback.print_exc()
+    print("\n=========================================")
+    print("        BINANCE MARKET SELECTOR")
+    print("=========================================\n")
+
+    for index, pair in enumerate(POPULAR_PAIRS, start=1):
+        print(f"{index}. {pair}")
+
+    while True:
+
+        try:
+            choice = int(
+                input(f"\nChoose a pair (1-{len(POPULAR_PAIRS)}): ")
+            )
+
+            if 1 <= choice <= len(POPULAR_PAIRS):
+                break
+
+            print("Invalid choice.")
+
+        except ValueError:
+            print("Please enter a number.")
+
+    symbol = POPULAR_PAIRS[choice - 1]
+
+    price = await exchange.get_market_price(symbol)
+
+    print("\n-----------------------------------------")
+    print(f"Selected Pair : {symbol}")
+    print(f"Current Price : {price} USDT")
+    print("-----------------------------------------")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

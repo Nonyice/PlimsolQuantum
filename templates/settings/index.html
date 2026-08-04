@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI SETTINGS</h2>
+
+    <p>System Configuration</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>PQI Status</h3>
+        <span id="pqi-status" class="status-live">READY</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Exchange</h3>
+        <span id="exchange" class="live-value">Binance</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Market</h3>
+        <span id="market" class="live-value">Spot</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Theme</h3>
+        <span class="live-value">Neon Dark</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>PQI CONFIGURATION</h2>
+
+    <table class="table">
+
+        <tbody>
+
+            <tr>
+                <td>Auto Execution</td>
+                <td>Enabled</td>
+            </tr>
+
+            <tr>
+                <td>Risk Guardian</td>
+                <td>Enabled</td>
+            </tr>
+
+            <tr>
+                <td>Live Scanner</td>
+                <td>Enabled</td>
+            </tr>
+
+            <tr>
+                <td>Decision Engine</td>
+                <td>Enabled</td>
+            </tr>
+
+            <tr>
+                <td>Learning Engine</td>
+                <td>Enabled</td>
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

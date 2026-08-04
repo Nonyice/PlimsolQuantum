@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Backtesting{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI BACKTESTING</h2>
+
+    <p>Historical Validation & Model Performance</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>Test Period</h3>
+        <span id="test-period" class="live-value">--</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Net Return</h3>
+        <span id="bt-return" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Win Rate</h3>
+        <span id="bt-winrate" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Max Drawdown</h3>
+        <span id="bt-drawdown" class="live-value">0%</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Sharpe Ratio</h3>
+        <span id="bt-sharpe" class="live-value">0.00</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>PQI Score</h3>
+        <span id="bt-score" class="status-live">--</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>BACKTEST SUMMARY</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Strategy Model</th>
+                <th>Trades</th>
+                <th>Win %</th>
+                <th>Return</th>
+                <th>Score</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="backtest-table">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

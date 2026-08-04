@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Execution Engine{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>PQI EXECUTION ENGINE</h2>
+
+    <p>Autonomous Trade Execution & Position Management</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>PQI Status</h3>
+        <span id="exec-status" class="status-live">IDLE</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Current Task</h3>
+        <span id="exec-task" class="live-value">Waiting...</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>PQI Decision</h3>
+        <span id="exec-decision" class="live-value">NONE</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Execution Queue</h3>
+        <span id="exec-queue" class="live-value">0</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Exchange</h3>
+        <span id="exec-exchange" class="live-value">--</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Market</h3>
+        <span id="exec-market" class="live-value">--</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Execution Latency</h3>
+        <span id="exec-latency" class="live-value">0 ms</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Risk Status</h3>
+        <span id="exec-risk" class="status-live">APPROVED</span>
+    </div>
+
+</div>
+
+<div class="glass-card">
+
+    <h2>LIVE EXECUTION LOG</h2>
+
+    <table class="table">
+
+        <thead>
+
+            <tr>
+                <th>Time</th>
+                <th>Exchange</th>
+                <th>Symbol</th>
+                <th>PQI Decision</th>
+                <th>Status</th>
+            </tr>
+
+        </thead>
+
+        <tbody id="execution-log">
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<div class="action-buttons">
+
+    <button
+        id="pause-pqi"
+        class="btn-sell">
+
+        PAUSE PQI
+
+    </button>
+
+    <button
+        id="stop-pqi"
+        class="btn-danger">
+
+        EMERGENCY STOP
+
+    </button>
+
+    <button
+        id="override"
+        class="btn-primary">
+
+        MANUAL OVERRIDE
+
+    </button>
+
+</div>
+
+{% endblock %}

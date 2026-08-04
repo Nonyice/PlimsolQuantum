@@ -115,6 +115,14 @@ class User(UserMixin, BaseModel):
         passive_deletes=True,
     )
 
+    trading_accounts = db.relationship(
+   	"TradingAccount",
+   	 back_populates="user",
+    	 lazy="select",
+   	 cascade="all, delete-orphan",
+       	 passive_deletes=True,
+    )
+
     trading_pin = db.relationship(
         "TradingPin",
         uselist=False,

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Accounts{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h2>CONNECTED ACCOUNTS</h2>
+
+    <p>Manage Exchange Connections</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="card live-card">
+        <h3>Connected Exchanges</h3>
+        <span class="live-value">0</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Active Account</h3>
+        <span class="live-value">--</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>API Status</h3>
+        <span class="status-live">DISCONNECTED</span>
+    </div>
+
+    <div class="card live-card">
+        <h3>Synchronization</h3>
+        <span class="live-value">0%</span>
+    </div>
+
+</div>
+
+{% endblock %}
