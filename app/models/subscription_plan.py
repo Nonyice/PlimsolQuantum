@@ -85,6 +85,12 @@ class SubscriptionPlan(BaseModel):
         lazy="select",
     )
 
+    active = db.Column(
+    db.Boolean,
+    default=True,
+    nullable=False,
+    )
+
     def __repr__(self):
         return (
             f"<SubscriptionPlan("

@@ -1,1 +1,11 @@
-from .routes import accounts_bp
+from flask import Blueprint
+
+
+accounts_bp = Blueprint(
+    "accounts",
+    __name__,
+    url_prefix="/accounts",
+)
+
+
+from app.accounts import routes

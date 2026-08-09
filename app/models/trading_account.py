@@ -1,17 +1,17 @@
-from decimal import Decimal
-
 from app.enums.exchange import Exchange
-from app.enums.market_type import MarketType
+from app.enums.market import MarketType
+
 from app.extensions import db
 from app.models.base import BaseModel
 
 
 class TradingAccount(BaseModel):
     """
-    Stores a user's trading account configuration.
+    Stores a user's connected exchange account.
 
-    A user can connect multiple exchange accounts,
-    e.g. Binance Spot, Binance Futures, Bybit, OKX, etc.
+    PQI does not hold trading funds.
+    Balances and trading capital are fetched from
+    the connected exchange.
     """
 
     __tablename__ = "trading_accounts"
@@ -43,6 +43,7 @@ class TradingAccount(BaseModel):
         index=True,
     )
 
+    # Encrypted credentials.
     api_key = db.Column(
         db.Text,
         nullable=False,
@@ -53,28 +54,16 @@ class TradingAccount(BaseModel):
         nullable=False,
     )
 
-    symbol = db.Column(
-        db.String(20),
-        nullable=False,
-        default="BTCUSDT",
-    )
-
-    leverage = db.Column(
-        db.Integer,
-        nullable=False,
-        default=1,
+    # Used by exchanges such as OKX.
+    passphrase = db.Column(
+        db.Text,
+        nullable=True,
     )
 
     is_testnet = db.Column(
         db.Boolean,
         nullable=False,
         default=False,
-    )
-
-    trading_capital = db.Column(
-        db.Numeric(18, 8),
-        nullable=False,
-        default=Decimal("10.00000000"),
     )
 
     max_concurrent_trades = db.Column(
@@ -87,6 +76,23 @@ class TradingAccount(BaseModel):
         db.Boolean,
         nullable=False,
         default=True,
+    )
+
+    is_default = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    can_trade = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+    )
+
+    last_sync = db.Column(
+        db.DateTime,
+        nullable=True,
     )
 
     created_at = db.Column(
@@ -123,6 +129,5 @@ class TradingAccount(BaseModel):
             f"user={self.user_id}, "
             f"exchange={self.exchange.value}, "
             f"market={self.market_type.value}, "
-            f"symbol='{self.symbol}', "
             f"name='{self.account_name}')>"
         )

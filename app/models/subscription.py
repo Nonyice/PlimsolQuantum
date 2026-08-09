@@ -67,6 +67,12 @@ class Subscription(BaseModel):
         lazy="select",
     )
 
+    payment_reference = db.Column(
+    db.String(120),
+    unique=True,
+    nullable=True,
+    )
+
     @property
     def is_active(self) -> bool:
         return (

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Account Type{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h1>Select Account Type</h1>
+
+    <p>Choose how you want to start with PQI.</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="glass-card">
+
+        <h2>Trial</h2>
+
+        <p>Practice with simulated funds.</p>
+
+        <ul>
+            <li>✓ Virtual Portfolio</li>
+            <li>✓ Live Market Data</li>
+            <li>✓ PQI Decisions</li>
+            <li>✓ Zero Risk</li>
+        </ul>
+
+        <br>
+
+        <a
+            href="{{ url_for('onboarding.subscription') }}"
+            class="btn-primary">
+
+            Start Trial
+
+        </a>
+
+    </div>
+
+    <div class="glass-card">
+
+        <h2>Live</h2>
+
+        <p>Trade with your real exchange account.</p>
+
+        <ul>
+            <li>✓ Real Portfolio</li>
+            <li>✓ Live Execution</li>
+            <li>✓ Risk Guardian</li>
+            <li>✓ Autonomous Trading</li>
+        </ul>
+
+        <br>
+
+        <a
+            href="{{ url_for('onboarding.exchange') }}"
+            class="btn-primary">
+
+            Continue
+
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

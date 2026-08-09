@@ -13,14 +13,16 @@ from .trial import Trial
 from .trading_pin import TradingPin
 from .email_token import EmailToken
 from .activity_log import ActivityLog
+from .trading_account import TradingAccount
 
-__all__ = [
-    "Role",
-    "User",
-    "SubscriptionPlan",
-    "Subscription",
-    "Trial",
-    "TradingPin",
-    "EmailToken",
-    "ActivityLog",
+all = [
+"Role",
+"User",
+"SubscriptionPlan",
+"Subscription",
+"Trial",
+"TradingPin",
+"EmailToken",
+"ActivityLog",
+"TradingAccount",
 ]

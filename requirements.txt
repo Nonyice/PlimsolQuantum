@@ -14,3 +14,6 @@ itsdangerous
 binance-connector>=3.8.0
 binance-futures-connector
 pybit
+ccxt
+msal
+requests

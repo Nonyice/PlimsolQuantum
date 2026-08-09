@@ -59,6 +59,7 @@ class AuthenticationService:
         db.session.flush()
 
         AuthenticationService.create_trial(user)
+        AuthenticationService.assign_starter_plan(user)
 
         token = AuthenticationService.create_email_token(
             user=user,
@@ -135,7 +136,8 @@ class AuthenticationService:
             description="Successful login.",
         )
 
-        return user, None
+        if not user.onboarding_completed:
+            return user, "ONBOARDING"
 
     @staticmethod
     def logout():
@@ -277,5 +279,29 @@ class AuthenticationService:
             action="PASSWORD_RESET",
             description="Password successfully changed.",
         )
+
+    @staticmethod
+    def assign_starter_plan(user):
+
+        from datetime import timedelta
+
+        from app.models.subscription import Subscription
+        from app.models.subscription_plan import SubscriptionPlan
+
+        plan = SubscriptionPlan.query.filter_by(
+            is_trial=True
+        ).first()
+
+        if not plan:
+            return
+
+        subscription = Subscription(
+            user_id=user.id,
+            plan_id=plan.id,
+            start_date=datetime.utcnow(),
+            end_date=datetime.utcnow() + timedelta(days=plan.duration_days),
+        )
+
+        db.session.add(subscription)
 
         return True, None

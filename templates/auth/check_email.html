@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Check Your Email | Plimsol Quantum Intelligence{% endblock %}
+
+{% block content %}
+
+<div class="auth-container">
+    <div class="auth-card">
+
+```
+    <div class="auth-icon">
+        ✉️
+    </div>
+
+    <h1>Check Your Email</h1>
+
+    <p class="auth-message">
+        Your account has been created successfully.
+    </p>
+
+    <p>
+        We've sent a verification email to:
+    </p>
+
+    <div class="verification-email">
+        <strong>{{ email }}</strong>
+    </div>
+
+    <p>
+        Please open your email inbox or spam/junk and click the
+        <strong>verification link</strong> to activate your account.
+    </p>
+
+    <div class="verification-notice">
+        <strong>Important:</strong>
+        Your verification link will expire in 1 hour.
+    </div>
+
+    <p class="secondary-message">
+        If you don't see the email within a few minutes,
+        please check your spam or junk folder.
+    </p>
+
+    <div class="auth-actions">
+        <a
+            href="{{ url_for('auth.login') }}"
+            class="btn btn-primary"
+        >
+            Go to Login
+        </a>
+
+        <a
+            href="{{ url_for('auth.resend_verification') }}"
+            class="btn btn-secondary"
+        >
+            Resend Verification Email
+        </a>
+    </div>
+
+</div>
+```
+
+</div>
+
+{% endblock %}

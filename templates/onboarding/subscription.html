@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Subscription{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h1>Select Your Plan</h1>
+
+    <p>Unlock the power of PQI.</p>
+
+</div>
+
+<div class="stats-grid">
+
+    <div class="glass-card">
+
+        <h2>Starter</h2>
+
+        <h3>Free</h3>
+
+        <ul>
+            <li>✓ Trial Account</li>
+            <li>✓ Live Scanner</li>
+            <li>✓ PQI Intelligence</li>
+        </ul>
+
+        <br>
+
+        <a
+            href="{{ url_for('onboarding.complete') }}"
+            class="btn-primary">
+
+            Select
+
+        </a>
+
+    </div>
+
+    <div class="glass-card">
+
+        <h2>Professional</h2>
+
+        <h3>₦ / $ Monthly</h3>
+
+        <ul>
+            <li>✓ Live Trading</li>
+            <li>✓ Risk Guardian</li>
+            <li>✓ Portfolio</li>
+            <li>✓ Reports</li>
+        </ul>
+
+        <br>
+
+        <button class="btn-primary">
+
+            Subscribe
+
+        </button>
+
+    </div>
+
+    <div class="glass-card">
+
+        <h2>Enterprise</h2>
+
+        <h3>Custom</h3>
+
+        <ul>
+            <li>✓ Unlimited Exchanges</li>
+            <li>✓ API Access</li>
+            <li>✓ Institutional Tools</li>
+        </ul>
+
+        <br>
+
+        <button class="btn-primary">
+
+            Contact Sales
+
+        </button>
+
+    </div>
+
+</div>
+
+{% endblock %}

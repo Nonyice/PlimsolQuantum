@@ -9,18 +9,38 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+
 BASE_DIR = Path(__file__).resolve().parent
 
 load_dotenv(BASE_DIR / ".env")
 
 
 class Config:
-    APP_NAME = "PlimsolQuantum"
-    APP_VERSION = "0.2.0"
+
+    APP_NAME = os.getenv(
+        "APP_NAME",
+        "PlimsolQuantum",
+    )
+
+    APP_VERSION = os.getenv(
+        "APP_VERSION",
+        "1.0.0",
+    )
+
+    COMPANY_NAME = os.getenv(
+        "COMPANY_NAME",
+        "PlimsolTech",
+    )
 
     SECRET_KEY = os.getenv("SECRET_KEY")
 
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SECURITY_PASSWORD_SALT = os.getenv(
+        "SECURITY_PASSWORD_SALT"
+    )
+
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL"
+    )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
@@ -29,15 +49,54 @@ class Config:
         "pool_recycle": 300,
     }
 
-    MAIL_SERVER = os.getenv("MAIL_SERVER")
-    MAIL_PORT = int(os.getenv("MAIL_PORT", 587))
-    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "True") == "True"
+    # ======================================================
+    # APPLICATION BASE URL
+    # ======================================================
+
+    APP_BASE_URL = os.getenv(
+        "APP_BASE_URL"
+    )
+
+    # ======================================================
+    # MAIL
+    # ======================================================
+
+    MAIL_SERVER = os.getenv(
+        "MAIL_SERVER"
+    )
+
+    MAIL_PORT = int(
+        os.getenv(
+            "MAIL_PORT",
+            587,
+        )
+    )
+
+    MAIL_USE_TLS = (
+        os.getenv(
+            "MAIL_USE_TLS",
+            "True",
+        ).lower()
+        == "true"
+    )
+
     MAIL_USE_SSL = False
 
-    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
-    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+    MAIL_USERNAME = os.getenv(
+        "MAIL_USERNAME"
+    )
 
-    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER")
+    MAIL_PASSWORD = os.getenv(
+        "MAIL_PASSWORD"
+    )
+
+    MAIL_DEFAULT_SENDER = os.getenv(
+        "MAIL_DEFAULT_SENDER"
+    )
+
+    # ======================================================
+    # SESSION
+    # ======================================================
 
     REMEMBER_COOKIE_DURATION = 7 * 24 * 60 * 60
 
@@ -45,21 +104,32 @@ class Config:
 
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    # ======================================================
+    # APPLICATION
+    # ======================================================
+
     FREE_TRIAL_DAYS = 7
 
 
 class DevelopmentConfig(Config):
+
     DEBUG = True
+
+    SESSION_COOKIE_SECURE = False
 
 
 class ProductionConfig(Config):
+
     DEBUG = False
 
     SESSION_COOKIE_SECURE = True
 
 
 class TestingConfig(Config):
+
     TESTING = True
+
+    SESSION_COOKIE_SECURE = False
 
 
 config = {

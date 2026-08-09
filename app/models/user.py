@@ -13,15 +13,18 @@ class User(UserMixin, BaseModel):
 
     __tablename__ = "users"
 
+
     first_name = db.Column(
         db.String(100),
         nullable=False,
     )
 
+
     last_name = db.Column(
         db.String(100),
         nullable=False,
     )
+
 
     username = db.Column(
         db.String(80),
@@ -30,6 +33,7 @@ class User(UserMixin, BaseModel):
         index=True,
     )
 
+
     email = db.Column(
         db.String(150),
         unique=True,
@@ -37,10 +41,12 @@ class User(UserMixin, BaseModel):
         index=True,
     )
 
+
     password_hash = db.Column(
         db.String(255),
         nullable=False,
     )
+
 
     email_verified = db.Column(
         db.Boolean,
@@ -48,10 +54,12 @@ class User(UserMixin, BaseModel):
         nullable=False,
     )
 
+
     email_verified_at = db.Column(
         db.DateTime,
         nullable=True,
     )
+
 
     two_factor_enabled = db.Column(
         db.Boolean,
@@ -59,10 +67,12 @@ class User(UserMixin, BaseModel):
         nullable=False,
     )
 
+
     last_login = db.Column(
         db.DateTime,
         nullable=True,
     )
+
 
     failed_login_attempts = db.Column(
         db.Integer,
@@ -70,10 +80,12 @@ class User(UserMixin, BaseModel):
         nullable=False,
     )
 
+
     locked_until = db.Column(
         db.DateTime,
         nullable=True,
     )
+
 
     timezone = db.Column(
         db.String(50),
@@ -81,10 +93,33 @@ class User(UserMixin, BaseModel):
         nullable=False,
     )
 
+
     country = db.Column(
         db.String(100),
         nullable=True,
     )
+
+
+    account_type = db.Column(
+        db.String(20),
+        default="trial",
+        nullable=False,
+    )
+
+
+    onboarding_completed = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False,
+    )
+
+
+    pqi_enabled = db.Column(
+        db.Boolean,
+        default=False,
+        nullable=False,
+    )
+
 
     role_id = db.Column(
         db.ForeignKey(
@@ -94,11 +129,13 @@ class User(UserMixin, BaseModel):
         nullable=False,
     )
 
+
     role = db.relationship(
         "Role",
         back_populates="users",
         lazy="select",
     )
+
 
     subscriptions = db.relationship(
         "Subscription",
@@ -106,6 +143,7 @@ class User(UserMixin, BaseModel):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
 
     trial = db.relationship(
         "Trial",
@@ -115,13 +153,15 @@ class User(UserMixin, BaseModel):
         passive_deletes=True,
     )
 
+
     trading_accounts = db.relationship(
-   	"TradingAccount",
-   	 back_populates="user",
-    	 lazy="select",
-   	 cascade="all, delete-orphan",
-       	 passive_deletes=True,
+        "TradingAccount",
+        back_populates="user",
+        lazy="select",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
+
 
     trading_pin = db.relationship(
         "TradingPin",
@@ -131,12 +171,14 @@ class User(UserMixin, BaseModel):
         passive_deletes=True,
     )
 
+
     email_tokens = db.relationship(
         "EmailToken",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
 
     activity_logs = db.relationship(
         "ActivityLog",
@@ -145,35 +187,71 @@ class User(UserMixin, BaseModel):
         passive_deletes=True,
     )
 
-    def set_password(self, password: str) -> None:
-        self.password_hash = bcrypt.generate_password_hash(
-            password
-        ).decode("utf-8")
 
-    def check_password(self, password: str) -> bool:
+    def set_password(
+        self,
+        password: str,
+    ) -> None:
+
+        self.password_hash = (
+            bcrypt.generate_password_hash(
+                password
+            ).decode("utf-8")
+        )
+
+
+    def check_password(
+        self,
+        password: str,
+    ) -> bool:
+
         return bcrypt.check_password_hash(
             self.password_hash,
             password,
         )
 
+
     @property
     def is_admin(self) -> bool:
-        return self.role is not None and self.role.name.lower() == "admin"
+
+        return (
+            self.role is not None
+            and self.role.name.lower() == "admin"
+        )
+
 
     @property
     def full_name(self) -> str:
-        return f"{self.first_name} {self.last_name}".strip()
+
+        return (
+            f"{self.first_name} "
+            f"{self.last_name}"
+        ).strip()
+
 
     def get_id(self) -> str:
+
         return str(self.id)
 
+
     def record_successful_login(self):
+
         self.last_login = datetime.utcnow()
+
         self.failed_login_attempts = 0
+
         self.locked_until = None
 
+
     def record_failed_login(self):
+
         self.failed_login_attempts += 1
 
+
     def __repr__(self):
-        return f"<User(username='{self.username}', email='{self.email}')>"
+
+        return (
+            f"<User("
+            f"username='{self.username}', "
+            f"email='{self.email}')>"
+        )

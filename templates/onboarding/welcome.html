@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block content %}
+
+<h1>Welcome to Plimsol Quantum Intelligence</h1>
+
+<p>
+    Your autonomous trading intelligence is almost ready.
+</p>
+
+<h2>Before You Begin</h2>
+
+<ul class="onboarding-list">
+    <li>✓ Complete your profile</li>
+    <li>✓ Choose Trial or Live account</li>
+    <li>✓ Connect an exchange (Live only)</li>
+    <li>✓ Select a subscription</li>
+    <li>✓ Launch PQI</li>
+</ul>
+
+<br>
+
+<a
+href="{{ url_for('onboarding.complete') }}"
+class="btn-primary"
+
+>
+
+```
+Get Started
+```
+
+</a>
+
+{% endblock %}

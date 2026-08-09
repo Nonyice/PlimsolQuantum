@@ -1,12 +1,14 @@
 from pathlib import Path
 
 from flask import Flask
+from flask_wtf.csrf import CSRFError
 
 from config import config
 
 from app.extensions import init_extensions
 
 from app.accounts import accounts_bp
+from app.onboarding import onboarding_bp
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +27,13 @@ def create_app(config_name="development"):
     )
 
     init_extensions(app)
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        return (
+            f"CSRF Error: {error.description}",
+            400,
+        )
 
     from app.dashboard import dashboard_bp
     from app.auth import auth_bp
@@ -45,6 +54,10 @@ def create_app(config_name="development"):
 
     app.register_blueprint(
         accounts_bp
+    )
+
+    app.register_blueprint(
+        onboarding_bp
     )
 
     return app

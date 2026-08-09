@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+
+<div class="hero-card">
+
+    <h1>Complete Your Profile</h1>
+
+    <p>Tell us a little about yourself.</p>
+
+</div>
+
+<div class="glass-card">
+
+    <form method="POST">
+
+        <div class="form-group">
+
+            <label>Full Name</label>
+
+            <input
+                type="text"
+                name="fullname"
+                required>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Phone Number</label>
+
+            <input
+                type="text"
+                name="phone">
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Country</label>
+
+            <input
+                type="text"
+                name="country"
+                required>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Timezone</label>
+
+            <input
+                type="text"
+                name="timezone"
+                placeholder="Africa/Lagos">
+
+        </div>
+
+        <br>
+
+        <a
+            href="{{ url_for('onboarding.account_type') }}"
+            class="btn-primary">
+
+            Continue
+
+        </a>
+
+    </form>
+
+</div>
+
+{% endblock %}

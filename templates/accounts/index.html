@@ -6,32 +6,168 @@
 
 <div class="hero-card">
 
-    <h2>CONNECTED ACCOUNTS</h2>
+    <h2>CONNECTED EXCHANGES</h2>
 
-    <p>Manage Exchange Connections</p>
+    <p>
+        Securely manage your exchange connections.
+    </p>
 
 </div>
 
-<div class="stats-grid">
 
-    <div class="card live-card">
-        <h3>Connected Exchanges</h3>
-        <span class="live-value">0</span>
+<div class="glass-card">
+
+    <div class="table-header">
+
+        <div>
+
+            <h3>Exchange Connections</h3>
+
+            <p>
+                Your connected trading accounts
+            </p>
+
+        </div>
+
+        <a
+            href="{{ url_for('accounts.add') }}"
+            class="btn-primary"
+        >
+            + Add Exchange
+        </a>
+
     </div>
 
-    <div class="card live-card">
-        <h3>Active Account</h3>
-        <span class="live-value">--</span>
-    </div>
 
-    <div class="card live-card">
-        <h3>API Status</h3>
-        <span class="status-live">DISCONNECTED</span>
-    </div>
+    <div class="table-responsive">
 
-    <div class="card live-card">
-        <h3>Synchronization</h3>
-        <span class="live-value">0%</span>
+        <table class="table">
+
+            <thead>
+
+                <tr>
+
+                    <th>Exchange</th>
+
+                    <th>Status</th>
+
+                    <th>Default</th>
+
+                    <th>Permissions</th>
+
+                    <th>Last Sync</th>
+
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% if accounts %}
+
+                    {% for account in accounts %}
+
+                    <tr>
+
+                        <td>
+                            {{ account.exchange }}
+                        </td>
+
+                        <td>
+
+                            <span class="status-live">
+                                CONNECTED
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            {% if account.is_default %}
+                                ✓
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if account.can_trade %}
+                                Trading
+                            {% else %}
+                                Read Only
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if account.last_sync %}
+                                {{ account.last_sync }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            <a
+                                href="#"
+                                class="btn-secondary"
+                            >
+                                Manage
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <tr>
+
+                        <td
+                            colspan="6"
+                            style="text-align: center; padding: 40px;"
+                        >
+
+                            <div>
+
+                                <strong>
+                                    No exchange connected
+                                </strong>
+
+                                <p>
+                                    Connect an exchange to begin
+                                    synchronizing your portfolio.
+                                </p>
+
+                                <a
+                                    href="{{ url_for('accounts.add') }}"
+                                    class="btn-primary"
+                                >
+                                    + Connect Exchange
+                                </a>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endif %}
+
+            </tbody>
+
+        </table>
+
     </div>
 
 </div>

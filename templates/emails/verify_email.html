@@ -1,0 +1,17 @@
+<h2>Verify Your Email</h2>
+
+<p>Hello {{ user.full_name }},</p>
+
+<p>
+Welcome to Plimsol Quantum Intelligence.
+</p>
+
+<p>
+
+<a href="{{ url_for('auth.verify_email', token=token, _external=True) }}">
+
+Verify Email
+
+</a>
+
+</p>

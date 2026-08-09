@@ -1,44 +1,217 @@
 {% extends "base.html" %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Create Account{% endblock %}
 
 {% block content %}
 
-<section class="auth-page">
+<!-- ==========================================================
+     FLASH MESSAGES
+     ========================================================== -->
 
-    <form class="glass-card auth-form" method="POST">
+{% with messages = get_flashed_messages(with_categories=true) %}
 
-        <h2>Create Account</h2>
+    {% if messages %}
 
-        <input
-            type="text"
-            name="fullname"
-            placeholder="Full Name"
-            required
-        >
+        <div class="flash-messages">
 
-        <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            required
-        >
+            {% for category, message in messages %}
 
-        <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            required
-        >
+                <div class="flash-message flash-{{ category }}">
 
-        <button class="btn-primary">
+                    <span class="flash-text">
+                        {{ message }}
+                    </span>
 
-            Register
+                    <button
+                        type="button"
+                        class="flash-close"
+                        onclick="this.parentElement.remove()"
+                    >
+                        &times;
+                    </button>
 
-        </button>
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    {% endif %}
+
+{% endwith %}
+
+
+<!-- ==========================================================
+     REGISTRATION CARD
+     ========================================================== -->
+
+<div class="glass-card auth-card">
+
+    <h2>Create PQI Account</h2>
+
+    <p>
+        Join Plimsol Quantum Intelligence
+    </p>
+
+
+    <form method="POST">
+
+        {{ form.hidden_tag() }}
+
+
+        <!-- FIRST NAME -->
+
+        <div class="form-group">
+
+            {{ form.first_name.label }}
+
+            {{ form.first_name(
+                class="form-control"
+            ) }}
+
+            {% for error in form.first_name.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- LAST NAME -->
+
+        <div class="form-group">
+
+            {{ form.last_name.label }}
+
+            {{ form.last_name(
+                class="form-control"
+            ) }}
+
+            {% for error in form.last_name.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- USERNAME -->
+
+        <div class="form-group">
+
+            {{ form.username.label }}
+
+            {{ form.username(
+                class="form-control"
+            ) }}
+
+            {% for error in form.username.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- EMAIL -->
+
+        <div class="form-group">
+
+            {{ form.email.label }}
+
+            {{ form.email(
+                class="form-control"
+            ) }}
+
+            {% for error in form.email.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- PASSWORD -->
+
+        <div class="form-group">
+
+            {{ form.password.label }}
+
+            {{ form.password(
+                class="form-control"
+            ) }}
+
+            {% for error in form.password.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- CONFIRM PASSWORD -->
+
+        <div class="form-group">
+
+            {{ form.confirm_password.label }}
+
+            {{ form.confirm_password(
+                class="form-control"
+            ) }}
+
+            {% for error in form.confirm_password.errors %}
+
+                <small class="form-error">
+                    {{ error }}
+                </small>
+
+            {% endfor %}
+
+        </div>
+
+
+        <br>
+
+
+        <!-- SUBMIT -->
+
+        {{ form.submit(
+            class="btn-primary w-100"
+        ) }}
 
     </form>
 
-</section>
+
+    <hr>
+
+
+    <p>
+
+        Already have an account?
+
+        <a href="{{ url_for('auth.login') }}">
+
+            Login
+
+        </a>
+
+    </p>
+
+</div>
 
 {% endblock %}
