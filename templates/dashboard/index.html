@@ -1,162 +1,62 @@
 {% extends "base.html" %}
-
 {% block title %}PQI Dashboard{% endblock %}
-
 {% block content %}
-
 <section class="dashboard">
 
-    <div class="hero-card">
+{% if active_trial %}
+<div class="glass-card trial-banner">
+    <div><strong>TRIAL MARKET SIMULATION ACTIVE</strong><p>{{ active_trial.days_remaining }} day{% if active_trial.days_remaining != 1 %}s{% endif %} remaining · live exchange market data · paper execution only</p></div>
+    <a href="{{ url_for('dashboard.go_live') }}" class="btn-primary">GO LIVE</a>
+</div>
+{% elif latest_trial and latest_trial.is_expired %}
+<div class="glass-card"><strong>TRIAL EXPIRED</strong><p>Your previous simulation has ended.</p><a href="{{ url_for('onboarding.trial') }}" class="btn-primary">START NEW TRIAL</a></div>
+{% endif %}
 
-        <h2>PLIMSOL QUANTUM INTELLIGENCE</h2>
-
-        <p>
-            Autonomous Institutional Trading Intelligence
-        </p>
-
+<div class="hero-card">
+    <div>
+        <span class="eyebrow">PLIMSOL QUANTUM INTELLIGENCE</span>
+        <h2>PQI MARKET COMMAND</h2>
+        <p>The dashboard is the live window into the PQI engines: market feed → intelligence → risk → execution.</p>
     </div>
+    <div class="engine-status"><span class="pulse-dot"></span><span id="pqi-status">IDLE</span></div>
+</div>
 
-    <div class="stats-grid">
-
-        <div class="card">
-            <h3>PQI STATUS</h3>
-            <span class="success">● ACTIVE</span>
-        </div>
-
-        <div class="card">
-            <h3>Exchange</h3>
-            <span id="exchange">Binance Futures</span>
-        </div>
-
-        <div class="card">
-            <h3>Current Market</h3>
-            <span id="market">BTCUSDT</span>
-        </div>
-
-        <div class="card">
-            <h3>Current Decision</h3>
-            <span id="decision">SCANNING</span>
-        </div>
-
-        <div class="card">
-            <h3>Confidence</h3>
-            <span id="confidence">98.42%</span>
-        </div>
-
-        <div class="card">
-            <h3>Market Regime</h3>
-            <span id="regime">Bullish Expansion</span>
-        </div>
-
-        <div class="card">
-            <h3>Open Positions</h3>
-            <span id="positions">0</span>
-        </div>
-
-        <div class="card">
-            <h3>Portfolio Value</h3>
-            <span id="portfolio">$0.00</span>
-        </div>
-
-        <div class="card">
-            <h3>Today's P/L</h3>
-            <span id="daily-pnl">$0.00</span>
-        </div>
-
-        <div class="card">
-            <h3>Next Scan</h3>
-            <span id="nextscan">00:00:03</span>
-        </div>
-
+<div class="glass-card market-control-panel">
+    <div class="section-heading"><div><h2>MARKET & CAPITAL</h2><p id="capital-hint">Loading exchange market environment...</p></div><span id="capital-mode" class="mode-badge">--</span></div>
+    <div class="control-grid">
+        <div class="form-group"><label>Exchange</label><select id="exchange-select"><option value="binance">Binance</option><option value="bybit">Bybit</option></select></div>
+        <div class="form-group"><label>Market</label><select id="market-type-select"><option value="spot">Spot</option><option value="futures">Futures</option></select></div>
+        <div class="form-group"><label>Trading Pair</label><select id="market-select"><option value="BTCUSDT">Loading pairs...</option></select></div>
+        <div class="form-group"><label>Trading Capital (USDT)</label><input id="capital-input" type="number" min="10" step="0.01" placeholder="10 - 10,000"></div>
     </div>
+    <div class="capital-row"><span>Available capital: <strong id="capital-available">$0.00</strong></span><div class="capital-presets"><button type="button" class="capital-preset" data-value="10">$10</button><button type="button" class="capital-preset" data-value="50">$50</button><button type="button" class="capital-preset" data-value="100">$100</button><button type="button" class="capital-preset" data-value="500">$500</button><button type="button" class="capital-preset" data-value="1000">$1K</button><button type="button" class="capital-preset" data-value="5000">$5K</button><button type="button" class="capital-preset" data-value="10000">$10K</button></div></div>
+    <div class="action-buttons command-bar"><button id="configure-pqi" class="btn-secondary" type="button">APPLY MARKET</button><button id="engage-pqi" class="btn-primary" type="button">ENGAGE PQI</button><button id="pause-pqi" class="btn-sell" type="button">PAUSE</button><button id="stop-pqi" class="btn-danger" type="button">EMERGENCY STOP</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE / EXCHANGE</a></div>
+    <small id="market-feed-error" class="error-text"></small>
+</div>
 
-    <div class="glass-card">
+<div class="stats-grid">
+    <div class="card"><h3>Exchange</h3><span id="exchange">--</span></div>
+    <div class="card"><h3>Current Market</h3><span id="market">--</span></div>
+    <div class="card"><h3>Last Price</h3><span id="market-price">--</span></div>
+    <div class="card"><h3>24H Change</h3><span id="market-change">--</span></div>
+    <div class="card"><h3>PQI Decision</h3><span id="decision">WAITING</span></div>
+    <div class="card"><h3>Confidence</h3><span id="confidence">0.00%</span></div>
+    <div class="card"><h3>Market Regime</h3><span id="regime">--</span></div>
+    <div class="card"><h3>Portfolio / Equity</h3><span id="portfolio">$0.00</span></div>
+    <div class="card"><h3>Today's P/L</h3><span id="daily-pnl">$0.00</span></div>
+    <div class="card"><h3>Open Positions</h3><span id="positions">0</span></div>
+</div>
 
-        <h2>PQI CONTROL CENTER</h2>
+<div class="dashboard-grid market-grid">
+    <div class="glass-card chart-card"><div class="section-heading"><div><h2>LIVE MARKET · CANDLESTICK</h2><p><span id="market-connection">DISCONNECTED</span> · Bid <b id="market-bid">--</b> · Ask <b id="market-ask">--</b></p></div></div><canvas id="priceChart"></canvas></div>
+    <div class="glass-card market-stats"><h2>MARKET FEED</h2><div class="market-feed-grid"><div><small>24H VOLUME</small><b id="market-volume">--</b></div><div><small>24H HIGH</small><b id="market-high">--</b></div><div><small>24H LOW</small><b id="market-low">--</b></div><div><small>SPREAD</small><b id="market-spread">--</b></div></div><div class="feed-note">PQI is reading the exchange market, not generating placeholder prices.</div></div>
+</div>
 
-        <div class="action-buttons">
-
-            <button
-                class="btn-primary"
-                id="engage-pqi"
-            >
-                ENGAGE PQI
-            </button>
-
-            <button
-                class="btn-sell"
-                id="pause-pqi"
-            >
-                PAUSE
-            </button>
-
-            <button
-                class="btn-danger"
-                id="stop-pqi"
-            >
-                EMERGENCY STOP
-            </button>
-
-        </div>
-
-    </div>
-
-    <div class="dashboard-grid">
-
-        <div class="glass-card">
-
-            <h2>LIVE MARKET</h2>
-
-            <canvas id="priceChart"></canvas>
-
-        </div>
-
-        <div class="glass-card">
-
-            <h2>PQI ACTIVITY</h2>
-
-            <table class="table">
-
-                <tbody>
-
-                    <tr>
-                        <td>Current Task</td>
-                        <td id="task">Scanning Markets</td>
-                    </tr>
-
-                    <tr>
-                        <td>Signals Analysed</td>
-                        <td id="signals">0</td>
-                    </tr>
-
-                    <tr>
-                        <td>Trades Today</td>
-                        <td id="trades">0</td>
-                    </tr>
-
-                    <tr>
-                        <td>Win Rate</td>
-                        <td id="winrate">0%</td>
-                    </tr>
-
-                    <tr>
-                        <td>Risk Exposure</td>
-                        <td id="risk">0%</td>
-                    </tr>
-
-                    <tr>
-                        <td>System Health</td>
-                        <td>Excellent</td>
-                    </tr>
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
+<div class="dashboard-grid">
+    <div class="glass-card chart-card"><div class="section-heading"><div><h2>PAPER / LIVE EQUITY</h2><p>Portfolio value produced by the active execution mode.</p></div></div><canvas id="equityChart"></canvas></div>
+    <div class="glass-card"><h2>PQI ACTIVITY</h2><table class="table"><tbody><tr><td>Current Task</td><td id="task">--</td></tr><tr><td>Signals Analysed</td><td id="signals">0</td></tr><tr><td>Trades Today</td><td id="trades">0</td></tr><tr><td>Win Rate</td><td id="winrate">0%</td></tr><tr><td>Risk Exposure</td><td id="risk">0%</td></tr><tr><td>Next Scan</td><td id="nextscan">--</td></tr></tbody></table></div>
+</div>
 
 </section>
-
 {% endblock %}
+{% block scripts %}{% endblock %}

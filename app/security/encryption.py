@@ -1,34 +1,63 @@
 import os
 
 from cryptography.fernet import Fernet
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
-class EncryptionService:
+class EncryptionError(Exception):
+    """Raised when encryption configuration or operations fail."""
+
+
+def _get_cipher():
+    key = os.getenv("PQI_ENCRYPTION_KEY")
+
+    if not key:
+        raise EncryptionError(
+            "PQI_ENCRYPTION_KEY is not configured."
+        )
+
+    try:
+        return Fernet(key.encode("utf-8"))
+    except Exception as exc:
+        raise EncryptionError(
+            "PQI_ENCRYPTION_KEY is invalid."
+        ) from exc
+
+
+def encrypt_value(value: str) -> str:
     """
-    Handles encryption and decryption of sensitive data.
+    Encrypt a sensitive value before storing it in the database.
     """
 
-    def __init__(self):
-        key = os.getenv("ENCRYPTION_KEY")
+    if not value:
+        raise EncryptionError(
+            "Cannot encrypt an empty value."
+        )
 
-        if not key:
-            raise ValueError(
-                "ENCRYPTION_KEY is missing from environment variables."
-            )
+    cipher = _get_cipher()
 
-        self.fernet = Fernet(key.encode())
+    return cipher.encrypt(
+        value.encode("utf-8")
+    ).decode("utf-8")
 
-    def encrypt(self, value: str) -> str:
-        """
-        Encrypt plain text.
-        """
-        return self.fernet.encrypt(value.encode()).decode()
 
-    def decrypt(self, value: str) -> str:
-        """
-        Decrypt encrypted text.
-        """
-        return self.fernet.decrypt(value.encode()).decode()
+def decrypt_value(value: str) -> str:
+    """
+    Decrypt a value retrieved from the database.
+    """
+
+    if not value:
+        raise EncryptionError(
+            "Cannot decrypt an empty value."
+        )
+
+    cipher = _get_cipher()
+
+    try:
+        return cipher.decrypt(
+            value.encode("utf-8")
+        ).decode("utf-8")
+
+    except Exception as exc:
+        raise EncryptionError(
+            "Unable to decrypt stored credential."
+        ) from exc

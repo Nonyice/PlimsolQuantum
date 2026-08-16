@@ -1,89 +1,11 @@
 {% extends "base.html" %}
-
 {% block title %}Intelligence{% endblock %}
-
 {% block content %}
-
 <section class="dashboard">
-
-    <div class="stats-grid">
-
-        <div class="card live-card">
-            <h3>PQI Confidence</h3>
-            <span id="confidence" class="live-value">0.00%</span>
-        </div>
-
-        <div class="card live-card">
-            <h3>Trend</h3>
-            <span id="trend" class="live-value">--</span>
-        </div>
-
-        <div class="card live-card">
-            <h3>Momentum</h3>
-            <span id="momentum" class="live-value">--</span>
-        </div>
-
-        <div class="card live-card">
-            <h3>Volatility</h3>
-            <span id="volatility" class="live-value">--</span>
-        </div>
-
-        <div class="card live-card">
-            <h3>Liquidity</h3>
-            <span id="liquidity" class="live-value">--</span>
-        </div>
-
-        <div class="card live-card">
-            <h3>Market Regime</h3>
-            <span id="regime" class="live-value">--</span>
-        </div>
-
-    </div>
-
-    <div class="glass-card">
-
-        <h2>PQI Decision Engine</h2>
-
-        <table class="table">
-
-            <tbody>
-
-                <tr>
-                    <td>PQI Decision</td>
-                    <td id="decision" class="live-value">WAITING</td>
-                </tr>
-
-                <tr>
-                    <td>Signal</td>
-                    <td id="signal">--</td>
-                </tr>
-
-                <tr>
-                    <td>Entry</td>
-                    <td id="entry">--</td>
-                </tr>
-
-                <tr>
-                    <td>Stop Loss</td>
-                    <td id="sl">--</td>
-                </tr>
-
-                <tr>
-                    <td>Take Profit</td>
-                    <td id="tp">--</td>
-                </tr>
-
-                <tr>
-                    <td>Risk Reward</td>
-                    <td id="rr">--</td>
-                </tr>
-
-            </tbody>
-
-        </table>
-
-    </div>
-
+<div class="hero-card"><span class="eyebrow">PQI INTELLIGENCE LAYER</span><h2>MARKET INTELLIGENCE</h2><p>Every value below is fed by the active PQI market scan.</p></div>
+<div class="stats-grid">
+<div class="card live-card"><h3>Confidence</h3><span id="confidence">0.00%</span></div><div class="card live-card"><h3>Trend</h3><span id="trend">--</span></div><div class="card live-card"><h3>Momentum</h3><span id="momentum">--</span></div><div class="card live-card"><h3>Volatility</h3><span id="volatility">--</span></div><div class="card live-card"><h3>Liquidity / Volume</h3><span id="liquidity">--</span></div><div class="card live-card"><h3>Market Regime</h3><span id="regime">--</span></div>
+</div>
+<div class="dashboard-grid"><div class="glass-card chart-card"><h2>MARKET STRUCTURE</h2><canvas id="priceChart"></canvas></div><div class="glass-card"><h2>PQI DECISION ENGINE</h2><table class="table"><tbody><tr><td>Decision</td><td id="decision">WAITING</td></tr><tr><td>Signal</td><td id="signal">--</td></tr><tr><td>Entry</td><td id="entry">--</td></tr><tr><td>Stop Loss</td><td id="sl">--</td></tr><tr><td>Take Profit</td><td id="tp">--</td></tr><tr><td>Risk / Reward</td><td id="rr">--</td></tr><tr><td>Reason</td><td id="intelligence-reason">--</td></tr></tbody></table></div></div>
 </section>
-
 {% endblock %}

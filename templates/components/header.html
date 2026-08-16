@@ -1,47 +1,83 @@
 <header class="header">
 
-   <button
-    class="menu-toggle"
-    id="menu-toggle"
->
-    ☰
-</button>
+    <button
+        class="menu-toggle"
+        id="menu-toggle"
+        type="button"
+        aria-label="Open menu"
+    >
+        ☰
+    </button>
 
-<div class="brand">
 
-    <div class="logo">
-        <img
-            src="{{ url_for('static', filename='images/pqi logo.png') }}"
-            alt="Plimsol Quantum Intelligence"
-        >
+    <div class="brand">
+
+        <div class="logo">
+
+            <img
+                src="{{ url_for(
+                    'static',
+                    filename='images/pqi logo.png'
+                ) }}"
+                alt="Plimsol Quantum Intelligence"
+            >
+
+        </div>
+
+
+        <div class="brand-text">
+
+            <h1>
+                Plimsol Quantum Intelligence
+            </h1>
+
+            <small>
+                ...A Progressive Profit Harvester
+            </small>
+
+        </div>
+
     </div>
 
-    <div>
 
-        <h1>
-            Plimsol Quantum Intelligence
-        </h1>
+    <div class="header-right">
 
-        <small>
-            ...A Progressive Profit Harvester
-        </small>
+
+        {% if current_user.is_authenticated %}
+
+            <div class="session-user">
+
+                <strong>
+                    {{ current_user.full_name }}
+                </strong>
+
+                <span class="session-email">
+                    {{ current_user.email }}
+                </span>
+
+                <a
+                    href="{{ url_for('auth.logout') }}"
+                    class="logout-link"
+                >
+                    Logout
+                </a>
+
+            </div>
+
+        {% endif %}
+
+
+        <div class="market-status">
+
+            <span class="dot"></span>
+
+            LIVE
+
+        </div>
+
+
+        <div id="clock"></div>
 
     </div>
-
-</div>
-
-<div class="header-right">
-
-    <div class="market-status">
-
-        <span class="dot"></span>
-
-        LIVE
-
-    </div>
-
-    <div id="clock"></div>
-
-</div>
 
 </header>

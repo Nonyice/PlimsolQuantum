@@ -4,214 +4,207 @@
 
 {% block content %}
 
-<div class="hero-card">
+<h2>ADD EXCHANGE</h2>
 
-    <h2>ADD EXCHANGE</h2>
+<p>
+    Connect your exchange account securely to PQI.
+</p>
 
-    <p>
-        Connect your exchange account securely to PQI.
-    </p>
+<form method="POST">
 
-</div>
+    <input
+        type="hidden"
+        name="csrf_token"
+        value="{{ csrf_token() }}"
+    >
 
-<div class="glass-card">
+    <div class="form-group">
 
-    <form method="POST">
+        <label for="account_name">
+            Account Name
+        </label>
 
-        {% if form and form.hidden_tag %}
-            {{ form.hidden_tag() }}
-        {% endif %}
+        <input
+            type="text"
+            id="account_name"
+            name="account_name"
+            class="form-control"
+            placeholder="e.g. Binance Main"
+            value="{{ request.form.get('account_name', '') }}"
+            required
+        >
+
+    </div>
 
 
-        <div class="form-group">
+    <div class="form-group">
 
-            <label for="account_name">
-                Account Name
-            </label>
+        <label for="exchange">
+            Exchange
+        </label>
+
+        <select
+            id="exchange"
+            name="exchange"
+            class="form-control"
+            required
+        >
+
+            <option value="" selected disabled>
+                Select Exchange
+            </option>
+
+            <option
+                value="binance"
+                {% if request.form.get('exchange') == 'binance' %}
+                    selected
+                {% endif %}
+            >
+                Binance
+            </option>
+
+            <option
+                value="bybit"
+                {% if request.form.get('exchange') == 'bybit' %}
+                    selected
+                {% endif %}
+            >
+                Bybit
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+        <label for="market_type">
+            Market
+        </label>
+
+        <select
+            id="market_type"
+            name="market_type"
+            class="form-control"
+            required
+        >
+
+            <option
+                value="SPOT"
+                {% if request.form.get('market_type', 'SPOT') == 'SPOT' %}
+                    selected
+                {% endif %}
+            >
+                Spot
+            </option>
+
+            <option
+                value="FUTURES"
+                {% if request.form.get('market_type') == 'FUTURES' %}
+                    selected
+                {% endif %}
+            >
+                Futures
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <div class="form-group">
+
+        <label for="api_key">
+            API Key
+        </label>
+
+        <input
+            type="text"
+            id="api_key"
+            name="api_key"
+            class="form-control"
+            autocomplete="off"
+            required
+        >
+
+    </div>
+
+
+    <div class="form-group">
+
+        <label for="api_secret">
+            API Secret
+        </label>
+
+        <input
+            type="password"
+            id="api_secret"
+            name="api_secret"
+            class="form-control"
+            autocomplete="new-password"
+            required
+        >
+
+    </div>
+
+
+    <div class="form-group">
+
+        <label for="passphrase">
+            Passphrase
+        </label>
+
+        <input
+            type="password"
+            id="passphrase"
+            name="passphrase"
+            class="form-control"
+            autocomplete="new-password"
+        >
+
+        <small>
+            Leave blank if the exchange does not require one.
+        </small>
+
+    </div>
+
+
+    <div class="form-group">
+
+        <label class="checkbox-label">
 
             <input
-                type="text"
-                id="account_name"
-                name="account_name"
-                class="form-control"
-                placeholder="e.g. Binance Main"
-                value="{{ request.form.get('account_name', '') }}"
-                required
+                type="checkbox"
+                name="is_testnet"
+                value="1"
             >
 
-        </div>
+            Use Testnet
+
+        </label>
+
+    </div>
 
 
-        <div class="form-group">
+    <div class="form-actions">
 
-            <label for="exchange">
-                Exchange
-            </label>
+        <button
+            type="submit"
+            class="btn-primary"
+        >
+            TEST & CONNECT
+        </button>
 
-            <select
-                id="exchange"
-                name="exchange"
-                class="form-control"
-                required
-            >
+        <a
+            href="{{ url_for('accounts.index') }}"
+            class="btn-secondary"
+        >
+            CANCEL
+        </a>
 
-                <option value="" selected disabled>
-                    Select Exchange
-                </option>
+    </div>
 
-                <option
-                    value="binance"
-                    {% if request.form.get('exchange') == 'binance' %}
-                        selected
-                    {% endif %}
-                >
-                    Binance
-                </option>
-
-                <option
-                    value="bybit"
-                    {% if request.form.get('exchange') == 'bybit' %}
-                        selected
-                    {% endif %}
-                >
-                    Bybit
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="market_type">
-                Market
-            </label>
-
-            <select
-                id="market_type"
-                name="market_type"
-                class="form-control"
-                required
-            >
-
-                <option
-                    value="SPOT"
-                    {% if request.form.get('market_type', 'SPOT') == 'SPOT' %}
-                        selected
-                    {% endif %}
-                >
-                    Spot
-                </option>
-
-                <option
-                    value="FUTURES"
-                    {% if request.form.get('market_type') == 'FUTURES' %}
-                        selected
-                    {% endif %}
-                >
-                    Futures
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="api_key">
-                API Key
-            </label>
-
-            <input
-                type="text"
-                id="api_key"
-                name="api_key"
-                class="form-control"
-                autocomplete="off"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="api_secret">
-                API Secret
-            </label>
-
-            <input
-                type="password"
-                id="api_secret"
-                name="api_secret"
-                class="form-control"
-                autocomplete="new-password"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label for="passphrase">
-                Passphrase
-            </label>
-
-            <input
-                type="password"
-                id="passphrase"
-                name="passphrase"
-                class="form-control"
-                autocomplete="new-password"
-            >
-
-            <small>
-                Leave blank if the exchange does not require one.
-            </small>
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label class="checkbox-label">
-
-                <input
-                    type="checkbox"
-                    name="is_testnet"
-                    value="1"
-                >
-
-                Use Testnet
-
-            </label>
-
-        </div>
-
-
-        <div class="form-actions">
-
-            <button
-                type="submit"
-                class="btn-primary"
-            >
-                TEST & CONNECT
-            </button>
-
-            <a
-                href="{{ url_for('accounts.index') }}"
-                class="btn-secondary"
-            >
-                CANCEL
-            </a>
-
-        </div>
-
-    </form>
-
-</div>
+</form>
 
 {% endblock %}

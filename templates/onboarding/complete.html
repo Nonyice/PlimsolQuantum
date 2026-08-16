@@ -5,69 +5,39 @@
 {% block content %}
 
 <div class="hero-card">
-
     <h1>PQI IS READY</h1>
-
     <p>Your account has been configured successfully.</p>
-
 </div>
 
 <div class="stats-grid">
-
     <div class="card live-card">
-
         <h3>Profile</h3>
-
         <span class="status-live">READY</span>
-
     </div>
 
     <div class="card live-card">
-
         <h3>Account</h3>
-
-        <span class="status-live">ACTIVE</span>
-
+        <span class="status-live">{{ current_user.account_type|upper }}</span>
     </div>
 
     <div class="card live-card">
-
         <h3>PQI Engine</h3>
-
         <span class="status-live">ONLINE</span>
-
     </div>
 
     <div class="card live-card">
-
         <h3>Security</h3>
-
         <span class="status-live">VERIFIED</span>
-
     </div>
-
 </div>
 
 <div class="glass-card">
-
     <h2>You're Ready</h2>
-
-    <p>
-
-        Click below to launch the Plimsol Quantum Intelligence dashboard.
-
-    </p>
-
+    <p>Launch the Plimsol Quantum Intelligence dashboard.</p>
     <br>
-
-    <a
-        href="{{ url_for('dashboard.index') }}"
-        class="btn-primary">
-
+    <a href="{{ url_for('dashboard.index') }}" class="btn-primary">
         Launch PQI
-
     </a>
-
 </div>
 
 {% endblock %}

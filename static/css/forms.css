@@ -68,4 +68,4 @@ background:linear-gradient(45deg,#cc0033,var(--danger));
 
 transform:translateY(-2px);
 
-}
+}.btn-secondary{background:#121b2a;border:1px solid var(--border);color:var(--text);display:inline-flex;align-items:center;justify-content:center;text-align:center}.btn-secondary:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-2px)}.form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:20px}.form-actions>*{min-width:140px}.form-group{margin-bottom:16px}.form-group small{display:block;color:var(--muted);margin-top:6px}.checkbox-label{display:flex!important;align-items:center;gap:10px}.checkbox-label input{width:auto}.table-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}

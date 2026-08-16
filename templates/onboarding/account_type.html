@@ -1,69 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}Account Type{% endblock %}
+{% block title %}Choose Your PQI Account{% endblock %}
 
 {% block content %}
-
 <div class="hero-card">
-
-    <h1>Select Account Type</h1>
-
-    <p>Choose how you want to start with PQI.</p>
-
+    <h1>Choose How You Want to Start</h1>
+    <p>Your account is ready. Choose a 7-day simulated trial or connect an exchange to go live.</p>
 </div>
 
 <div class="stats-grid">
-
     <div class="glass-card">
-
-        <h2>Trial</h2>
-
-        <p>Practice with simulated funds.</p>
-
+        <h2>7-Day Trial</h2>
+        <p>Explore PQI with simulated trading. No exchange credentials or real funds are required.</p>
         <ul>
-            <li>✓ Virtual Portfolio</li>
-            <li>✓ Live Market Data</li>
-            <li>✓ PQI Decisions</li>
-            <li>✓ Zero Risk</li>
+            <li>✓ 7 days</li>
+            <li>✓ Simulated trading</li>
+            <li>✓ Live market data</li>
+            <li>✓ PQI intelligence</li>
+            <li>✓ No real funds at risk</li>
         </ul>
-
         <br>
-
-        <a
-            href="{{ url_for('onboarding.subscription') }}"
-            class="btn-primary">
-
-            Start Trial
-
-        </a>
-
+        <a href="{{ url_for('onboarding.trial') }}" class="btn-primary">Start 7-Day Trial</a>
     </div>
 
     <div class="glass-card">
-
-        <h2>Live</h2>
-
-        <p>Trade with your real exchange account.</p>
-
+        <h2>Go Live</h2>
+        <p>Connect a supported exchange and prepare your real trading account.</p>
         <ul>
-            <li>✓ Real Portfolio</li>
-            <li>✓ Live Execution</li>
-            <li>✓ Risk Guardian</li>
-            <li>✓ Autonomous Trading</li>
+            <li>✓ Connect Binance or Bybit</li>
+            <li>✓ Encrypted API credentials</li>
+            <li>✓ Real portfolio data</li>
+            <li>✓ Risk controls</li>
+            <li>✓ Trading authorization remains explicit</li>
         </ul>
-
         <br>
-
-        <a
-            href="{{ url_for('onboarding.exchange') }}"
-            class="btn-primary">
-
-            Continue
-
-        </a>
-
+        <a href="{{ url_for('onboarding.select_live') }}" class="btn-primary">Go Live</a>
     </div>
-
 </div>
-
 {% endblock %}

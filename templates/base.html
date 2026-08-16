@@ -1,81 +1,88 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>
-        {% block title %}
-        Plimsol Quantum Intelligence
-        {% endblock %}
-    </title>
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
 
-    <link
-        rel="icon"
-        href="{{ url_for('static', filename='img/favicon.ico') }}"
-    >
+<title>
+    {% block title %}
+    Plimsol Quantum Intelligence
+    {% endblock %}
+</title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/variables.css') }}"
-    >
+<link
+    rel="icon"
+    href="{{ url_for('static', filename='img/favicon.ico') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/base.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/variables.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/layout.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/base.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/sidebar.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/layout.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/header.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/sidebar.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/dashboard.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/header.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/cards.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/dashboard.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/forms.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/cards.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/tables.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/forms.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/animations.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/tables.css') }}"
+>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/responsive.css') }}"
-    >
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/animations.css') }}"
+>
 
-    {% block css %}{% endblock %}
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/responsive.css') }}"
+>
+
+<style>
+.site-footer{margin-top:auto;background:#070b12;border-top:1px solid var(--border);padding:34px 28px 18px}.footer-container{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;gap:32px}.footer-col{display:flex;flex-direction:column;gap:9px}.footer-col h4{font-size:11px;letter-spacing:1.6px;color:var(--primary);margin:0 0 5px}.footer-col a{color:var(--muted);text-decoration:none;font-size:13px}.footer-col a:hover{color:#fff}.footer-brand strong{font-size:15px;color:#fff}.footer-brand p{color:var(--muted);font-size:12px;line-height:1.6;max-width:360px;margin:0}.footer-bottom{max-width:1400px;margin:26px auto 0;padding-top:15px;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:15px;color:var(--muted);font-size:11px}
+@media(max-width:768px){.footer-container{grid-template-columns:1fr;gap:22px}.footer-bottom{flex-direction:column}.site-footer{padding:28px 18px 16px}}
+</style>
+{% block css %}{% endblock %}
 
 </head>
 
@@ -83,23 +90,57 @@
 
 <div class="app">
 
-    {% include "components/sidebar.html" %}
+{% include "components/sidebar.html" %}
 
-    <div class="main">
+<div class="main">
 
-        {% include "components/header.html" %}
+    {% include "components/header.html" %}
 
-        <main class="content">
+    <main class="content">
 
-            {% block content %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
 
-            {% endblock %}
+            {% if messages %}
 
-        </main>
+                <div class="flash-messages">
 
-        {% include "components/footer.html" %}
+                    {% for category, message in messages %}
 
-    </div>
+                        <div class="flash-message flash-{{ category }}">
+
+                            {% if category == "success" %}
+                                ✓
+                            {% elif category == "danger" %}
+                                ✕
+                            {% elif category == "warning" %}
+                                ⚠
+                            {% elif category == "info" %}
+                                ℹ
+                            {% endif %}
+
+                            <span>
+                                {{ message }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        {% endwith %}
+
+        {% block content %}
+
+        {% endblock %}
+
+    </main>
+
+    {% include "components/footer.html" %}
+
+</div>
 
 </div>
 
@@ -111,12 +152,9 @@
 
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 
-<script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
-
-
 <script src="{{ url_for('static', filename='js/pqi.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pqi-live.js') }}"></script>
-<script src="{{ url_for('static', filename='js/pqi-controls.js') }}"></script>
+
+<script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
 
 
 {% block scripts %}{% endblock %}

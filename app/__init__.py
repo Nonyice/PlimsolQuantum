@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from flask import Flask
+from flask import Flask, flash, redirect, request, url_for
 from flask_wtf.csrf import CSRFError
 
 from config import config
@@ -30,6 +30,15 @@ def create_app(config_name="development"):
 
     @app.errorhandler(CSRFError)
     def handle_csrf_error(error):
+        # Keep CSRF protection enabled. If an onboarding form is rejected,
+        # return the user to the same step instead of exposing a raw 400 page.
+        if request.path.startswith("/onboarding/"):
+            flash(
+                "Your security token has expired or is invalid. Please try again.",
+                "danger",
+            )
+            return redirect(request.referrer or url_for("onboarding.profile"))
+
         return (
             f"CSRF Error: {error.description}",
             400,

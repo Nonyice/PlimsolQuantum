@@ -1,156 +1,48 @@
-from datetime import datetime
+from app.intelligence.observer import MarketObserver
+from app.intelligence.trend_engine import TrendEngine
+from app.intelligence.momentum_engine import MomentumEngine
+from app.intelligence.volume_engine import VolumeEngine
+from app.intelligence.volatility_engine import VolatilityEngine
+from app.intelligence.support_resistance_engine import SupportResistanceEngine
+from app.intelligence.market_personality_engine import MarketPersonalityEngine
+from app.intelligence.opportunity_engine import OpportunityEngine
+from app.intelligence.decision_engine import DecisionEngine
 
-from app.enums.trade_status import TradeStatus
-from app.learning.journal import Journal
-from app.models.trade import Trade
 
-
-class TradeExecutor:
-    """
-    Executes approved trades.
-
-    PQI decides.
-
-    TradeExecutor executes.
-
-    Journal records.
-    """
+class PQI:
+    """Single intelligence pipeline shared by trial and live execution."""
 
     def __init__(self):
+        self.observer = MarketObserver()
+        self.trend = TrendEngine()
+        self.momentum = MomentumEngine()
+        self.volume = VolumeEngine()
+        self.volatility = VolatilityEngine()
+        self.support = SupportResistanceEngine()
+        self.personality = MarketPersonalityEngine()
+        self.opportunity = OpportunityEngine()
+        self.decision = DecisionEngine()
 
-        self.journal = Journal()
+    async def observe(self, trading_account, symbol=None):
+        return await self.observer.observe(trading_account, symbol=symbol)
 
-    async def execute(
-        self,
-        exchange,
-        trading_account,
-        analysis,
-    ):
-
-        decision = analysis["decision"]
-
-        if not decision["approved"]:
-
-            return {
-                "success": False,
-                "message": decision["reason"],
-            }
-
-        action = decision["action"]
-
-        symbol = decision["symbol"]
-
-        quantity = decision["quantity"]
-
-        if action == "BUY":
-
-            exchange_result = await exchange.place_market_buy(
-                symbol=symbol,
-                quantity=quantity,
-            )
-
-        elif action == "SELL":
-
-            exchange_result = await exchange.place_market_sell(
-                symbol=symbol,
-                quantity=quantity,
-            )
-
-        else:
-
-            return {
-                "success": False,
-                "message": "Unsupported action.",
-            }
-
-        trade = Trade(
-
-            user_id=trading_account.user_id,
-
-            trading_account_id=trading_account.id,
-
-            exchange=trading_account.exchange,
-
-            market_type=trading_account.market_type,
-
-            symbol=symbol,
-
-            timeframe=decision.get("timeframe", "1h"),
-
-            side=action,
-
-            position=decision.get("position", "LONG"),
-
-            leverage=decision.get("leverage", 1),
-
-            risk_percent=decision.get(
-                "risk_percent",
-                1.0,
-            ),
-
-            entry_price=decision["entry_price"],
-
-            stop_loss=decision["stop_loss"],
-
-            take_profit=decision["take_profit"],
-
-            quantity=quantity,
-
-            status=TradeStatus.OPEN,
-
-            opened_at=datetime.utcnow(),
-        )
-
-        self.journal.record_entry(
-
-            trade=trade,
-
-            snapshot=analysis["snapshot"],
-
-            analysis={
-
-                "trend": analysis["trend"],
-
-                "momentum": analysis["momentum"],
-
-                "volume": analysis["volume"],
-
-                "volatility": analysis["volatility"],
-
-                "support": analysis["support"],
-
-                "personality": analysis["personality"],
-
-                "opportunity": analysis["opportunity"],
-
-            },
-
-            decision=decision,
-        )
-
+    async def analyse(self, snapshot, trading_account, account_balance):
+        trend = self.trend.analyse(snapshot)
+        momentum = self.momentum.analyse(snapshot)
+        volume = self.volume.analyse(snapshot)
+        volatility = self.volatility.analyse(snapshot)
+        support = self.support.analyse(snapshot)
+        personality = self.personality.analyse(trend, momentum, volume, volatility, support)
+        opportunity = self.opportunity.evaluate(trend, momentum, volume, volatility, support, personality)
+        decision = self.decision.decide(opportunity, trend, momentum, volatility, personality, trading_account)
         return {
-
-            "success": True,
-
-            "trade_id": trade.id,
-
-            "trade_reference": str(
-                trade.trade_reference
-            ),
-
-            "exchange": trading_account.exchange.value,
-
-            "market_type":
-                trading_account.market_type.value,
-
-            "exchange_response":
-                exchange_result,
+            "snapshot": snapshot,
+            "trend": trend,
+            "momentum": momentum,
+            "volume": volume,
+            "volatility": volatility,
+            "support": support,
+            "personality": personality,
+            "opportunity": opportunity,
+            "decision": decision,
         }
-
-    async def close_position(
-        self,
-        exchange,
-        symbol,
-    ):
-
-        return await exchange.close_position(symbol)

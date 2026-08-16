@@ -58,9 +58,6 @@ class AuthenticationService:
 
         db.session.flush()
 
-        AuthenticationService.create_trial(user)
-        AuthenticationService.assign_starter_plan(user)
-
         token = AuthenticationService.create_email_token(
             user=user,
             purpose="VERIFY_EMAIL",

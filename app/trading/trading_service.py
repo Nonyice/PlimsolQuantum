@@ -27,36 +27,42 @@ class TradingService:
     async def run(
         self,
         trading_account,
+        capital=None,
+        symbol=None,
     ):
 
+        credentials = trading_account.get_credentials()
+
         exchange = ExchangeFactory.create(
-
             exchange=trading_account.exchange,
-
             market_type=trading_account.market_type,
-
-            api_key=trading_account.api_key,
-
-            api_secret=trading_account.api_secret,
-
+            api_key=credentials["api_key"],
+            api_secret=credentials["api_secret"],
             testnet=trading_account.is_testnet,
-
         )
 
         balances = await exchange.get_account_balance()
 
         account_balance = self._get_balance(
-
             balances,
-
             trading_account.market_type,
-
         )
 
+        if capital is not None:
+            capital = float(capital)
+            if capital < 10:
+                return {"success": False, "analysis": {}, "message": "Minimum trading capital is $10."}
+            if capital > account_balance:
+                return {
+                    "success": False,
+                    "analysis": {},
+                    "message": f"Insufficient capital. Available USDT: ${account_balance:,.2f}.",
+                }
+            account_balance = capital
+
         snapshot = await self.pqi.observe(
-
-            trading_account
-
+            trading_account,
+            symbol=symbol,
         )
 
         analysis = await self.pqi.analyse(
@@ -108,6 +114,8 @@ class TradingService:
         return {
 
             "success": True,
+
+            "account_balance": account_balance,
 
             "analysis": analysis,
 

@@ -104,6 +104,13 @@ class Config:
 
     SESSION_COOKIE_SAMESITE = "Lax"
 
+    # Flask-WTF CSRF protection
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_CHECK_DEFAULT = True
+    # Do not let a user lose a valid onboarding form simply because
+    # the page has been open for a while.
+    WTF_CSRF_TIME_LIMIT = None
+
     # ======================================================
     # APPLICATION
     # ======================================================

@@ -11,11 +11,7 @@ class SubscriptionService:
     @staticmethod
     def create_trial(user):
 
-        trial = Trial(
-            user_id=user.id,
-            start_date=datetime.utcnow(),
-            end_date=datetime.utcnow() + timedelta(days=7),
-        )
+        trial = Trial.create_trial(user.id, days=7)
 
         db.session.add(trial)
 

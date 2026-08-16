@@ -3,88 +3,71 @@
 {% block title %}Connect Exchange{% endblock %}
 
 {% block content %}
-
-<div class="hero-card">
-
-    <h1>Connect Your Exchange</h1>
-
-    <p>PQI will use your encrypted API credentials.</p>
-
+<div class="onboarding-header">
+    <div>
+        <h1>Connect Your Exchange</h1>
+        <p>Connect your exchange securely to prepare your live PQI account.</p>
+    </div>
 </div>
 
-<div class="glass-card">
+<div class="onboarding-card">
+    <h2>Exchange Connection</h2>
+    <p class="form-help">
+        Credentials are encrypted before they are stored. PQI does not receive or hold your exchange funds.
+        Connecting an exchange does not automatically authorize trading.
+    </p>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="form-group">
+            <label for="account_name">Account Name</label>
+            <input id="account_name" type="text" name="account_name" value="My Exchange" required>
+        </div>
 
-            <label>Exchange</label>
-
-            <select name="exchange">
-
-                <option>Binance</option>
-                <option>Bybit</option>
-                <option>OKX</option>
-                <option>KuCoin</option>
-
+        <div class="form-group">
+            <label for="exchange">Exchange</label>
+            <select id="exchange" name="exchange" required>
+                <option value="" selected disabled>Select an exchange</option>
+                <option value="binance">Binance</option>
+                <option value="bybit">Bybit</option>
             </select>
-
         </div>
 
         <div class="form-group">
-
-            <label>API Key</label>
-
-            <input
-                type="text"
-                name="api_key">
-
+            <label for="market_type">Market</label>
+            <select id="market_type" name="market_type" required>
+                <option value="spot" selected>Spot</option>
+                <option value="futures">Futures</option>
+            </select>
         </div>
 
         <div class="form-group">
-
-            <label>Secret Key</label>
-
-            <input
-                type="password"
-                name="secret_key">
-
+            <label for="api_key">API Key</label>
+            <input id="api_key" type="text" name="api_key" autocomplete="off" required>
         </div>
 
         <div class="form-group">
+            <label for="api_secret">API Secret</label>
+            <input id="api_secret" type="password" name="api_secret" autocomplete="new-password" required>
+        </div>
 
-            <label>
+        <div class="form-group">
+            <label for="passphrase">Passphrase (if required)</label>
+            <input id="passphrase" type="password" name="passphrase" autocomplete="new-password">
+        </div>
 
-                <input
-                    type="checkbox"
-                    name="testnet">
-
+        <div class="form-group">
+            <label class="checkbox-label">
+                <input type="checkbox" name="testnet" value="1">
                 Use Testnet
-
             </label>
-
         </div>
 
-        <br>
-
-        <button
-            class="btn-primary"
-            type="submit">
-
-            Validate Connection
-
-        </button>
-
-        <a
-            href="{{ url_for('onboarding.subscription') }}"
-            class="btn-primary">
-
-            Continue
-
-        </a>
-
+        <div class="form-actions">
+            <button class="btn-primary" type="submit">Validate & Connect</button>
+            <a href="{{ url_for('onboarding.account_type') }}" class="btn-secondary">Back</a>
+        </div>
     </form>
-
 </div>
-
 {% endblock %}

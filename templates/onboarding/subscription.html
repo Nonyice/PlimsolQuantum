@@ -5,84 +5,34 @@
 {% block content %}
 
 <div class="hero-card">
-
-    <h1>Select Your Plan</h1>
-
-    <p>Unlock the power of PQI.</p>
-
+    <h1>Subscription</h1>
+    <p>Manage your PQI subscription when paid plans are enabled.</p>
 </div>
 
 <div class="stats-grid">
-
     <div class="glass-card">
-
-        <h2>Starter</h2>
-
-        <h3>Free</h3>
-
-        <ul>
-            <li>✓ Trial Account</li>
-            <li>✓ Live Scanner</li>
-            <li>✓ PQI Intelligence</li>
-        </ul>
-
-        <br>
-
-        <a
-            href="{{ url_for('onboarding.complete') }}"
-            class="btn-primary">
-
-            Select
-
+        <h2>7-Day Trial</h2>
+        <p>Your trial is handled separately from exchange connectivity.</p>
+        <a href="{{ url_for('onboarding.account_type') }}" class="btn-primary">
+            Back to Account Options
         </a>
-
     </div>
 
     <div class="glass-card">
-
         <h2>Professional</h2>
-
-        <h3>₦ / $ Monthly</h3>
-
-        <ul>
-            <li>✓ Live Trading</li>
-            <li>✓ Risk Guardian</li>
-            <li>✓ Portfolio</li>
-            <li>✓ Reports</li>
-        </ul>
-
-        <br>
-
-        <button class="btn-primary">
-
-            Subscribe
-
+        <p>Paid live plan activation will be connected to the billing system.</p>
+        <button type="button" class="btn-primary" disabled>
+            Coming Soon
         </button>
-
     </div>
 
     <div class="glass-card">
-
         <h2>Enterprise</h2>
-
-        <h3>Custom</h3>
-
-        <ul>
-            <li>✓ Unlimited Exchanges</li>
-            <li>✓ API Access</li>
-            <li>✓ Institutional Tools</li>
-        </ul>
-
-        <br>
-
-        <button class="btn-primary">
-
-            Contact Sales
-
+        <p>Institutional plan and billing configuration.</p>
+        <button type="button" class="btn-primary" disabled>
+            Coming Soon
         </button>
-
     </div>
-
 </div>
 
 {% endblock %}

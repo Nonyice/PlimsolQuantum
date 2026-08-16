@@ -1,39 +1,37 @@
-async function loadPQIState() {
+/*
+ * PQI Live UI Helpers
+ *
+ * This file intentionally does NOT poll /api/pqi/state.
+ * pqi.js owns dashboard state polling.
+ */
 
-    const response = await fetch("/api/pqi/state");
 
-    if (!response.ok) return;
+function setPQILiveStatus(status) {
 
-    const state = await response.json();
+    const element =
+        document.querySelector(".market-status");
 
-    update("pqi-status", state.status);
-    update("exchange", state.exchange);
-    update("market", state.market);
-    update("decision", state.current_decision);
-    update("confidence", state.confidence.toFixed(2) + "%");
-    update("regime", state.market_regime);
-    update("positions", state.open_positions);
-    update("portfolio", "$" + state.portfolio_value.toFixed(2));
-    update("daily-pnl", "$" + state.daily_pnl.toFixed(2));
-    update("task", state.current_task);
-    update("signals", state.signals_analysed);
-    update("trades", state.trades_today);
-    update("winrate", state.win_rate.toFixed(2) + "%");
-    update("risk", state.risk_exposure.toFixed(2) + "%");
-}
-
-function update(id, value) {
-
-    const el = document.getElementById(id);
-
-    if (el) {
-
-        el.textContent = value;
-
+    if (!element) {
+        return;
     }
 
+    const dot =
+        element.querySelector(".dot");
+
+    if (status === "ACTIVE" || status === "RUNNING") {
+
+        if (dot) {
+            dot.classList.add("active");
+        }
+
+        element.classList.add("active");
+
+        return;
+    }
+
+    if (dot) {
+        dot.classList.remove("active");
+    }
+
+    element.classList.remove("active");
 }
-
-loadPQIState();
-
-setInterval(loadPQIState, 1000);

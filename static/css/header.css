@@ -82,3 +82,54 @@
 
     box-shadow: 0 0 10px var(--success);
 }
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 35px;
+}
+
+.session-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(6, 8, 13, 0.65);
+}
+
+.session-label {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.session-user strong {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.session-email {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.logout-link {
+    color: var(--danger);
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.logout-link:hover {
+    color: white;
+    text-shadow: 0 0 10px var(--danger);
+}
+
+.brand-text h1 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.brand-text small {
+    color: var(--muted);
+}
