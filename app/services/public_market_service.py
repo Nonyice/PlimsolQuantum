@@ -4,11 +4,21 @@ import asyncio
 import json
 import socket
 import urllib.request
+import threading
+import time
 from typing import Any
 
 
 class PublicMarketService:
-    """Public exchange market-data service used by PQI trial mode."""
+    """Public exchange market-data service used by PQI trial mode.
+
+    Market metadata is cached briefly so the dashboard can populate the pair
+    selector quickly without requesting exchangeInfo on every refresh.
+    """
+
+    _markets_cache: dict[tuple[str, str], tuple[float, list[str]]] = {}
+    _markets_lock = threading.Lock()
+    _markets_ttl = 60.0
 
     @staticmethod
     def _get_json(url: str, params: dict[str, Any] | None = None) -> Any:
@@ -37,25 +47,59 @@ class PublicMarketService:
     async def markets(cls, exchange="binance", market_type="spot") -> list[str]:
         exchange = (exchange or "binance").lower()
         market_type = (market_type or "spot").lower()
+        key = (exchange, market_type)
+        now = time.monotonic()
+
+        with cls._markets_lock:
+            cached = cls._markets_cache.get(key)
+            if cached and now - cached[0] < cls._markets_ttl:
+                return list(cached[1])
+
         if exchange == "bybit":
-            data = await asyncio.to_thread(
-                cls._get_json,
-                "https://api.bybit.com/v5/market/instruments-info",
-                {"category": "linear" if market_type == "futures" else "spot", "limit": 1000},
-            )
-            return sorted(
+            category = "linear" if market_type == "futures" else "spot"
+            all_items = []
+            cursor = None
+            # Bybit paginates instruments. Walk every page so the selector
+            # exposes every available USDT pair rather than the first 1,000.
+            for _ in range(20):
+                params = {"category": category, "limit": 1000}
+                if cursor:
+                    params["cursor"] = cursor
+                data = await asyncio.to_thread(
+                    cls._get_json,
+                    "https://api.bybit.com/v5/market/instruments-info",
+                    params,
+                )
+                result = data.get("result", {})
+                all_items.extend(result.get("list", []))
+                cursor = result.get("nextPageCursor")
+                if not cursor:
+                    break
+            markets = sorted(
                 item["symbol"]
-                for item in data.get("result", {}).get("list", [])
+                for item in all_items
                 if item.get("status") in (None, "Trading") and item.get("quoteCoin") == "USDT"
             )
+        else:
+            base = "https://fapi.binance.com" if market_type == "futures" else "https://api.binance.com"
+            endpoint = f"{base}/api/v3/exchangeInfo" if market_type == "spot" else f"{base}/fapi/v1/exchangeInfo"
+            data = await asyncio.to_thread(cls._get_json, endpoint)
+            markets = sorted(
+                item["symbol"]
+                for item in data.get("symbols", [])
+                if item.get("status") == "TRADING" and item.get("quoteAsset") == "USDT"
+            )
 
-        base = "https://fapi.binance.com" if market_type == "futures" else "https://api.binance.com"
-        data = await asyncio.to_thread(cls._get_json, f"{base}/api/v3/exchangeInfo" if market_type == "spot" else f"{base}/fapi/v1/exchangeInfo")
-        return sorted(
-            item["symbol"]
-            for item in data.get("symbols", [])
-            if item.get("status") == "TRADING" and item.get("quoteAsset") == "USDT"
-        )
+        with cls._markets_lock:
+            cls._markets_cache[key] = (time.monotonic(), markets)
+        return list(markets)
+
+    @classmethod
+    async def market_available(cls, exchange, market_type, symbol) -> bool:
+        compact = (symbol or "").replace("/", "").upper().strip()
+        if not compact:
+            return False
+        return compact in await cls.markets(exchange, market_type)
 
     @classmethod
     async def candles(cls, exchange, market_type, symbol, interval="1h", limit=120):

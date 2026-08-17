@@ -102,7 +102,10 @@ def capital():
 def configure():
     data = request.get_json(silent=True) or {}
     exchange = (data.get("exchange") or "binance").strip().lower()
-    market = (data.get("market") or "BTC/USDT").strip().upper()
+    market = (data.get("market") or "").strip().upper()
+    market = market.replace("/", "")
+    if not market:
+        return jsonify({"success": False, "error": "Select a trading pair."}), 400
     market_type = (data.get("market_type") or "spot").strip().lower()
     active_trial = current_user.active_trial
 
@@ -122,6 +125,12 @@ def configure():
         return jsonify({"success": False, "error": "Minimum trading capital is $10."}), 400
 
     if active_trial:
+        try:
+            available_markets = asyncio.run(PublicMarketService.markets(exchange, market_type))
+            if market not in available_markets:
+                return jsonify({"success": False, "error": f"{market} is not available on {exchange} {market_type}."}), 400
+        except Exception as exc:
+            return jsonify({"success": False, "error": f"Unable to validate trading pair: {exc}"}), 502
         session["pqi_paper_capital"] = capital_value
         engine.configure(exchange, market, market_type, capital_value)
         return jsonify({"success": True, "state": engine.snapshot()})
@@ -138,6 +147,12 @@ def configure():
         return jsonify({"success": False, "error": f"Insufficient capital. Available USDT: ${available:,.2f}."}), 400
     if account.market_type.value != market_type:
         market_type = account.market_type.value
+    try:
+        available_markets = asyncio.run(PublicMarketService.markets(account.exchange.value, market_type))
+        if market not in available_markets:
+            return jsonify({"success": False, "error": f"{market} is not available on {account.exchange.value} {market_type}."}), 400
+    except Exception as exc:
+        return jsonify({"success": False, "error": f"Unable to validate trading pair: {exc}"}), 502
     engine.configure(account.exchange.value, market, market_type, capital_value)
     return jsonify({"success": True, "state": engine.snapshot()})
 
@@ -196,7 +211,11 @@ def engage():
         if exchange not in {"trial", "binance", "bybit"}:
             Exchange(exchange)
         MarketType(market_type)
-        result = engine.engage(exchange, market, exchange_id, market_type, live_account, capital_value)
+        available_markets = asyncio.run(PublicMarketService.markets(exchange, market_type))
+        compact_market = market.replace("/", "")
+        if compact_market not in available_markets:
+            return jsonify({"success": False, "error": f"{compact_market} is not available on {exchange} {market_type}."}), 400
+        result = engine.engage(exchange, compact_market, exchange_id, market_type, live_account, capital_value)
         return jsonify({"success": True, "state": result})
     except ValueError as exc:
         return jsonify({"success": False, "error": str(exc)}), 400

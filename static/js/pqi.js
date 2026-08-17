@@ -29,11 +29,11 @@
         select.innerHTML = '';
         if (!clean.length) {
             const opt = document.createElement('option');
-            opt.value = 'BTCUSDT'; opt.textContent = 'Loading pairs...';
+            opt.value = ''; opt.textContent = 'Loading pairs...'; opt.disabled = true;
             select.appendChild(opt);
             return;
         }
-        clean.slice(0, 500).forEach(symbol => {
+        clean.forEach(symbol => {
             const opt = document.createElement('option');
             opt.value = symbol; opt.textContent = symbol;
             select.appendChild(opt);
@@ -73,8 +73,8 @@
     async function loadPreview() {
         const select = $('market-select');
         if (!select) return;
-        const symbol = select.value || 'BTCUSDT';
-        if (symbol === 'BTCUSDT' && select.options.length === 1 && select.options[0].textContent.includes('Loading')) return;
+        const symbol = select.value || window.__pqiSelectedMarket || '';
+        if (!symbol || (select.options.length === 1 && select.options[0].textContent.includes('Loading'))) return;
         const exchange = $('exchange-select')?.value || 'binance';
         const marketType = $('market-type-select')?.value || 'spot';
         try {
@@ -115,7 +115,7 @@
             method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
             body: JSON.stringify({
                 exchange: $('exchange-select')?.value || 'binance',
-                market: $('market-select')?.value || 'BTCUSDT',
+                market: $('market-select')?.value || window.__pqiSelectedMarket || '',
                 market_type: $('market-type-select')?.value || 'spot',
                 capital
             })
@@ -134,7 +134,7 @@
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     exchange: $('exchange-select')?.value || 'binance',
-                    market: $('market-select')?.value || 'BTCUSDT',
+                    market: $('market-select')?.value || window.__pqiSelectedMarket || '',
                     market_type: $('market-type-select')?.value || 'spot',
                     capital
                 })
@@ -183,7 +183,14 @@
             set('market-high', state.high_24h ? Number(state.high_24h).toLocaleString(undefined, {maximumFractionDigits: 8}) : '--');
             set('market-low', state.low_24h ? Number(state.low_24h).toLocaleString(undefined, {maximumFractionDigits: 8}) : '--');
             set('market-connection', state.connection_status); set('market-feed-error', state.market_status === 'ERROR' ? state.current_decision : '');
-            if ($('market-select') && state.symbol) $('market-select').value = state.symbol;
+            if ($('market-select') && state.symbol) {
+                const marketSelect = $('market-select');
+                const hasStateSymbol = [...marketSelect.options].some(option => option.value === state.symbol);
+                if (hasStateSymbol && !window.__pqiUserSelectedMarket) {
+                    marketSelect.value = state.symbol;
+                    window.__pqiSelectedMarket = state.symbol;
+                }
+            }
             if (window.PQICharts) { window.PQICharts.priceChart(state.candles || []); window.PQICharts.equityChart(state.equity_curve || []); }
             updateIntelligence(state); updatePortfolio(state); updateTrading(state);
             const signalRows = $('signals-table');
@@ -221,10 +228,24 @@
         $('configure-pqi')?.addEventListener('click', async () => { try { await configure(); await loadState(); } catch(e) { alert(e.message); } });
         $('exchange-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });
         $('market-type-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });
-        $('market-select')?.addEventListener('change', () => { window.__pqiSelectedMarket = $('market-select').value; loadPreview(); });
+        $('market-select')?.addEventListener('change', async () => {
+            const selected = $('market-select').value;
+            if (!selected) return;
+            window.__pqiSelectedMarket = selected;
+            window.__pqiUserSelectedMarket = true;
+            try {
+                // Keep the running engine synchronized with the dashboard selection.
+                await configure();
+                await loadPreview();
+                await loadState();
+            } catch (e) {
+                set('market-feed-error', e.message);
+            }
+        });
         $('capital-input')?.addEventListener('input', () => { capitalDirty = true; });
         document.querySelectorAll('.capital-preset').forEach(b => b.addEventListener('click', () => { const input=$('capital-input') || $('trial-capital'); if(input){input.value=b.dataset.value; input.dispatchEvent(new Event('input',{bubbles:true}));} }));
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadMarkets(); loadState(); loadCapital(); } });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) { window.__pqiUserSelectedMarket = false; loadMarkets(); loadState(); loadCapital(); } });
+        window.__pqiUserSelectedMarket = false;
         loadMarkets(); loadCapital(); loadState();
         setInterval(loadState, 1500); setInterval(loadCapital, 5000); setInterval(() => { if (document.visibilityState === 'visible' && (!$('pqi-status') || $('pqi-status').textContent !== 'ACTIVE')) loadPreview(); }, 10000);
     });

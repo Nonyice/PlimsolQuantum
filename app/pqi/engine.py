@@ -120,14 +120,11 @@ class PQIEngine:
         try:
             pqi_state.current_task = "Loading Live Trial Market"
             markets = await PublicMarketService.markets(pqi_state.exchange, pqi_state.market_type)
-            pqi_state.markets = markets[:500]
+            pqi_state.markets = list(markets)
             symbol = self._normalise_symbol(pqi_state.market)
             compact = symbol.replace("/", "")
             if compact not in pqi_state.markets:
-                compact = "BTCUSDT" if "BTCUSDT" in pqi_state.markets else (pqi_state.markets[0] if pqi_state.markets else "BTCUSDT")
-                symbol = self._normalise_symbol(compact)
-                pqi_state.market = symbol
-                pqi_state.symbol = compact
+                raise ValueError(f"Trading pair {compact} is not available on {pqi_state.exchange} {pqi_state.market_type}.")
 
             pqi_state.exchange_connected = True
             pqi_state.connection_status = "CONNECTED"
@@ -146,6 +143,16 @@ class PQIEngine:
                     continue
                 if pqi_state.status != "ACTIVE":
                     break
+                # Read the current selection every cycle so changing the
+                # dashboard pair immediately changes the running engine.
+                symbol = self._normalise_symbol(pqi_state.market)
+                compact = symbol.replace("/", "")
+                if compact not in pqi_state.markets:
+                    pqi_state.markets = await PublicMarketService.markets(pqi_state.exchange, pqi_state.market_type)
+                if compact not in pqi_state.markets:
+                    raise ValueError(f"Trading pair {compact} is not available on {pqi_state.exchange} {pqi_state.market_type}.")
+                pqi_state.symbol = compact
+                pqi_state.market = symbol
                 await self._scan_public(symbol)
                 await asyncio.sleep(8)
         except Exception as exc:
