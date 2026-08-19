@@ -46,15 +46,15 @@ class MomentumEngine:
 
     TIMEFRAME_WEIGHT = {
 
-        "1m": 1,
+        "1m": 2,
 
-        "5m": 2,
+        "5m": 4,
 
-        "15m": 3,
+        "15m": 5,
 
-        "1h": 5,
+        "1h": 6,
 
-        "4h": 8,
+        "4h": 7,
 
         "1d": 13,
 
@@ -75,9 +75,12 @@ class MomentumEngine:
 
         exhaustion = False
 
-        total_weight = sum(
-            self.TIMEFRAME_WEIGHT.values()
-        )
+        available_weights = [
+            self.TIMEFRAME_WEIGHT[tf]
+            for tf in snapshot.timeframes
+            if tf in self.TIMEFRAME_WEIGHT
+        ]
+        total_weight = sum(available_weights) or 1
 
         for tf, tf_data in snapshot.timeframes.items():
 

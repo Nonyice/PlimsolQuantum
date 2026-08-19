@@ -6,7 +6,7 @@
 {% if active_trial %}
 <div class="glass-card trial-banner">
     <div><strong>TRIAL MARKET SIMULATION ACTIVE</strong><p>{{ active_trial.days_remaining }} day{% if active_trial.days_remaining != 1 %}s{% endif %} remaining · live exchange market data · paper execution only</p></div>
-    <a href="{{ url_for('dashboard.go_live') }}" class="btn-primary">GO LIVE</a>
+    <div class="trial-banner-actions"><button id="add-trial-pqi" class="btn-secondary" type="button">+ ADD TRIAL</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-primary">GO LIVE</a></div>
 </div>
 {% elif latest_trial and latest_trial.is_expired %}
 <div class="glass-card"><strong>TRIAL EXPIRED</strong><p>Your previous simulation has ended.</p><a href="{{ url_for('onboarding.trial') }}" class="btn-primary">START NEW TRIAL</a></div>
@@ -26,13 +26,15 @@
     <div class="control-grid">
         <div class="form-group"><label>Exchange</label><select id="exchange-select"><option value="binance">Binance</option><option value="bybit">Bybit</option></select></div>
         <div class="form-group"><label>Market</label><select id="market-type-select"><option value="spot">Spot</option><option value="futures">Futures</option></select></div>
-        <div class="form-group"><label>Trading Pair</label><select id="market-select"><option value="">Loading pairs...</option></select></div>
+        <div class="form-group"><label>Trading Pair</label><select id="market-select"><option value="BTCUSDT">Loading pairs...</option></select></div>
         <div class="form-group"><label>Trading Capital (USDT)</label><input id="capital-input" type="number" min="10" step="0.01" placeholder="10 - 10,000"></div>
     </div>
     <div class="capital-row"><span>Available capital: <strong id="capital-available">$0.00</strong></span><div class="capital-presets"><button type="button" class="capital-preset" data-value="10">$10</button><button type="button" class="capital-preset" data-value="50">$50</button><button type="button" class="capital-preset" data-value="100">$100</button><button type="button" class="capital-preset" data-value="500">$500</button><button type="button" class="capital-preset" data-value="1000">$1K</button><button type="button" class="capital-preset" data-value="5000">$5K</button><button type="button" class="capital-preset" data-value="10000">$10K</button></div></div>
-    <div class="action-buttons command-bar"><button id="configure-pqi" class="btn-secondary" type="button">APPLY MARKET</button><button id="engage-pqi" class="btn-primary" type="button">ENGAGE PQI</button><button id="pause-pqi" class="btn-sell" type="button">PAUSE</button><button id="stop-pqi" class="btn-danger" type="button">EMERGENCY STOP</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE / EXCHANGE</a></div>
+    <div class="action-buttons command-bar"><button id="configure-pqi" class="btn-secondary" type="button">APPLY MARKET</button><button id="engage-pqi" class="btn-primary" type="button">ENGAGE PQI</button><button id="pause-pqi" class="btn-sell" type="button">PAUSE</button><button id="stop-pqi" class="btn-danger" type="button">EMERGENCY STOP</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE</a></div>
     <small id="market-feed-error" class="error-text"></small>
 </div>
+
+<div class="glass-card pqi-sessions-card"><div class="section-heading"><div><h2>ACTIVE PQI SESSIONS</h2><p>Each session runs independently. Selecting one changes the dashboard view without stopping the others.</p></div></div><div id="pqi-session-list" class="pqi-session-list"></div></div>
 
 <div class="stats-grid">
     <div class="card"><h3>Exchange</h3><span id="exchange">--</span></div>

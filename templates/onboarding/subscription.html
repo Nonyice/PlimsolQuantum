@@ -1,38 +1,31 @@
 {% extends "base.html" %}
 
-{% block title %}Subscription{% endblock %}
+{% block title %}PQI Subscription Gateway{% endblock %}
 
 {% block content %}
-
 <div class="hero-card">
-    <h1>Subscription</h1>
-    <p>Manage your PQI subscription when paid plans are enabled.</p>
+    <h1>PQI Subscription Gateway</h1>
+    <p>Select the subscription level for live PQI trading before continuing to exchange setup.</p>
 </div>
 
 <div class="stats-grid">
     <div class="glass-card">
-        <h2>7-Day Trial</h2>
-        <p>Your trial is handled separately from exchange connectivity.</p>
-        <a href="{{ url_for('onboarding.account_type') }}" class="btn-primary">
-            Back to Account Options
-        </a>
-    </div>
-
-    <div class="glass-card">
         <h2>Professional</h2>
-        <p>Paid live plan activation will be connected to the billing system.</p>
-        <button type="button" class="btn-primary" disabled>
-            Coming Soon
-        </button>
+        <p>Live PQI trading with your connected exchange account, market intelligence and risk controls.</p>
+        <ul>
+            <li>✓ Live market data</li>
+            <li>✓ PQI intelligence</li>
+            <li>✓ Exchange connectivity</li>
+            <li>✓ Risk controls</li>
+        </ul>
+        <br>
+        <a href="{{ url_for('onboarding.select_live') }}" class="btn-primary">Continue to Live Setup</a>
     </div>
 
     <div class="glass-card">
-        <h2>Enterprise</h2>
-        <p>Institutional plan and billing configuration.</p>
-        <button type="button" class="btn-primary" disabled>
-            Coming Soon
-        </button>
+        <h2>Subscription Status</h2>
+        <p>Your subscription gateway is the required checkpoint before live exchange configuration.</p>
+        <p>Payment processing can be connected here when the billing provider is enabled.</p>
     </div>
 </div>
-
 {% endblock %}

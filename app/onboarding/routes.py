@@ -212,14 +212,9 @@ def select_trial():
 @onboarding_bp.route("/subscription", methods=["GET", "POST"])
 @login_required
 def subscription():
-    # Paid subscriptions are intentionally separated from onboarding.
-    # Trial/live selection is the onboarding decision; billing can be added later.
-    redirect_response = _onboarding_required()
-    if redirect_response:
-        return redirect_response
-
-    flash("Choose Start Trial or Go Live to continue.", "info")
-    return redirect(url_for("onboarding.account_type"))
+    # GO LIVE enters here first. The gateway is deliberately kept in the live
+    # path even when onboarding has already been completed.
+    return render_template("onboarding/subscription.html")
 
 
 @onboarding_bp.route("/complete")

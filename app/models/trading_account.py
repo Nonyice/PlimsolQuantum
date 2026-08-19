@@ -162,6 +162,15 @@ class TradingAccount(BaseModel):
         lazy="select",
     )
 
+
+    trades = db.relationship(
+        "Trade",
+        back_populates="trading_account",
+        lazy="select",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
     # ==========================================================
     # CREDENTIAL ENCRYPTION
     # ==========================================================

@@ -58,9 +58,12 @@ class VolatilityEngine:
 
         explosive = False
 
-        total_weight = sum(
-            self.TIMEFRAME_WEIGHT.values()
-        )
+        available_weights = [
+            self.TIMEFRAME_WEIGHT[tf]
+            for tf in snapshot.timeframes
+            if tf in self.TIMEFRAME_WEIGHT
+        ]
+        total_weight = sum(available_weights) or 1
 
         for tf, tf_data in snapshot.timeframes.items():
 

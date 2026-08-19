@@ -54,7 +54,8 @@ def exchanges():
 @dashboard_bp.route("/go-live")
 @login_required
 def go_live():
-    return redirect(url_for("accounts.index"))
+    # GO LIVE must pass through the subscription gateway before exchange setup.
+    return redirect(url_for("onboarding.subscription"))
 
 
 @dashboard_bp.route("/strategies")

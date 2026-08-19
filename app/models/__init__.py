@@ -1,23 +1,34 @@
-"""Application models."""
+"""
+Application models.
 
-from .activity_log import ActivityLog
-from .email_token import EmailToken
+Import all models here so Flask-Migrate and SQLAlchemy
+can discover them automatically.
+"""
+
 from .role import Role
-from .subscription import Subscription
-from .subscription_plan import SubscriptionPlan
-from .trading_account import TradingAccount
-from .trading_pin import TradingPin
-from .trial import Trial
 from .user import User
+from .subscription_plan import SubscriptionPlan
+from .subscription import Subscription
+from .trial import Trial
+from .trading_pin import TradingPin
+from .email_token import EmailToken
+from .activity_log import ActivityLog
+from .trading_account import TradingAccount
+from .trade import Trade
+from .trade_snapshot import TradeSnapshot
+from .trade_outcome import TradeOutcome
 
-__all__ = [
-    "ActivityLog",
-    "EmailToken",
-    "Role",
-    "Subscription",
-    "SubscriptionPlan",
-    "TradingAccount",
-    "TradingPin",
-    "Trial",
-    "User",
+all = [
+"Role",
+"User",
+"SubscriptionPlan",
+"Subscription",
+"Trial",
+"TradingPin",
+"EmailToken",
+"ActivityLog",
+"TradingAccount",
+"Trade",
+"TradeSnapshot",
+"TradeOutcome",
 ]

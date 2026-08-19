@@ -44,15 +44,15 @@ class TrendEngine:
 
     TIMEFRAME_WEIGHT = {
 
-        "1m": 1,
+        "1m": 2,
 
-        "5m": 2,
+        "5m": 4,
 
-        "15m": 3,
+        "15m": 5,
 
-        "1h": 5,
+        "1h": 6,
 
-        "4h": 8,
+        "4h": 7,
 
         "1d": 13,
 
@@ -69,9 +69,12 @@ class TrendEngine:
 
         bearish = 0
 
-        total_weight = sum(
-            self.TIMEFRAME_WEIGHT.values()
-        )
+        available_weights = [
+            self.TIMEFRAME_WEIGHT[tf]
+            for tf in snapshot.timeframes
+            if tf in self.TIMEFRAME_WEIGHT
+        ]
+        total_weight = sum(available_weights) or 1
 
         weighted_strength = 0
 
@@ -159,28 +162,13 @@ class TrendEngine:
         ind,
     ):
 
-        if (
-
-            ind.ema20 >
-
-            ind.ema50 >
-
-            ind.ema200
-
-        ):
-
+        # EMA20/EMA50 gives the engine an earlier directional read.
+        # EMA200 alignment is reflected in strength/ADX rather than being a
+        # hard directional gate, so a developing 1h trend is not ignored.
+        if ind.ema20 > ind.ema50:
             return "BULLISH"
 
-        elif (
-
-            ind.ema20 <
-
-            ind.ema50 <
-
-            ind.ema200
-
-        ):
-
+        elif ind.ema20 < ind.ema50:
             return "BEARISH"
 
         return "SIDEWAYS"

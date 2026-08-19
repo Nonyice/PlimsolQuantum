@@ -16,6 +16,8 @@ box-shadow:var(--shadow);
 
 transition:.3s;
 
+font-size: 15px;
+
 }
 
 .card:hover,
@@ -40,7 +42,7 @@ color:var(--muted);
 
 .card span{
 
-font-size:28px;
+font-size:15px;
 
 font-weight:700;
 
@@ -121,4 +123,17 @@ color:var(--muted);
         opacity:.55;
     }
 
+}
+
+/* Keep live PQI values inside their existing glass cards. */
+.card,.glass-card,.hero-card{
+    min-width:0;
+    max-width:100%;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+.card span,.glass-card span,.hero-card span,.card b,.glass-card b,.hero-card b{
+    max-width:100%;
+    overflow-wrap:anywhere;
+    word-break:break-word;
 }

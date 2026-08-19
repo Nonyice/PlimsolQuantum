@@ -6,6 +6,11 @@
     const money = v => `$${Number(v || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     let capitalDirty = false;
     let marketRetryTimer = null;
+    // Add Trial enters a configuration-only flow. No new session is created
+    // until ENGAGE PQI is pressed.
+    let pendingNewSession = false;
+    let pendingTrialConfig = null;
+    const pageMode = new URLSearchParams(window.location.search).get('mode') || '';
 
     async function json(url, options = {}) {
         const opts = { ...options, headers: { ...(options.headers || {}) } };
@@ -24,23 +29,28 @@
     function populateMarkets(markets) {
         const select = $('market-select');
         if (!select) return;
-        const current = select.value || window.__pqiSelectedMarket;
+        const current = pendingNewSession
+            ? (pendingTrialConfig?.market || window.__pqiSelectedMarket || select.value)
+            : (select.value || window.__pqiSelectedMarket);
         const clean = [...new Set((markets || []).filter(Boolean))];
         select.innerHTML = '';
         if (!clean.length) {
             const opt = document.createElement('option');
-            opt.value = ''; opt.textContent = 'Loading pairs...'; opt.disabled = true;
+            opt.value = 'BTCUSDT'; opt.textContent = 'Loading pairs...';
             select.appendChild(opt);
             return;
         }
-        clean.forEach(symbol => {
+        clean.slice(0, 500).forEach(symbol => {
             const opt = document.createElement('option');
             opt.value = symbol; opt.textContent = symbol;
             select.appendChild(opt);
         });
-        const wanted = current && clean.includes(current) ? current : (clean.includes('BTCUSDT') ? 'BTCUSDT' : clean[0]);
+        const wanted = current && clean.includes(current)
+            ? current
+            : (pendingNewSession ? clean[0] : (clean.includes('BTCUSDT') ? 'BTCUSDT' : clean[0]));
         select.value = wanted;
         window.__pqiSelectedMarket = wanted;
+        if (pendingNewSession && !pendingTrialConfig) pendingTrialConfig = {market: wanted};
     }
 
     async function loadMarkets() {
@@ -65,16 +75,14 @@
 
     function scheduleMarketRetry() {
         if (marketRetryTimer) return;
-        marketRetryTimer = setInterval(async () => {
-            await loadMarkets();
-        }, 8000);
+        marketRetryTimer = setInterval(loadMarkets, 8000);
     }
 
     async function loadPreview() {
         const select = $('market-select');
         if (!select) return;
-        const symbol = select.value || window.__pqiSelectedMarket || '';
-        if (!symbol || (select.options.length === 1 && select.options[0].textContent.includes('Loading'))) return;
+        const symbol = select.value || 'BTCUSDT';
+        if (symbol === 'BTCUSDT' && select.options.length === 1 && select.options[0].textContent.includes('Loading')) return;
         const exchange = $('exchange-select')?.value || 'binance';
         const marketType = $('market-type-select')?.value || 'spot';
         try {
@@ -101,57 +109,132 @@
             const data = await json('/api/pqi/capital');
             set('capital-available', money(data.available));
             set('capital-mode', data.mode === 'trial' ? 'PAPER CAPITAL' : 'EXCHANGE CAPITAL');
+            if (pageMode === 'live' && data.mode === 'live') {
+                const exchangeSelect = $('exchange-select');
+                const marketTypeSelect = $('market-type-select');
+                if (exchangeSelect && data.exchange) { exchangeSelect.value = data.exchange; exchangeSelect.disabled = true; }
+                if (marketTypeSelect && data.market_type) { marketTypeSelect.value = data.market_type; marketTypeSelect.disabled = true; }
+            }
             const input = $('capital-input');
             if (input && !capitalDirty && document.activeElement !== input) input.value = data.selected || '';
             const liveHint = $('capital-hint');
-            if (liveHint) liveHint.textContent = data.mode === 'trial' ? 'Live public market data · paper funds · minimum $10.' : `Available on exchange: ${money(data.available)} · minimum $10.`;
+            if (liveHint) liveHint.textContent = data.mode === 'trial'
+                ? 'Live public market data · paper funds · minimum $10.'
+                : `Connected exchange · available: ${money(data.available)} · ${data.can_trade ? 'trading authorized' : 'analysis only until trading is authorized'}.`;
         } catch (e) { set('capital-hint', e.message); }
     }
 
     async function configure() {
         const capital = Number($('capital-input')?.value);
+        const market = pendingNewSession
+            ? (pendingTrialConfig?.market || $('market-select')?.value || '')
+            : ($('market-select')?.value || '');
+        if (!market) throw new Error('Select a trading pair before applying the configuration.');
         if (!Number.isFinite(capital) || capital < 10) throw new Error('Minimum trading capital is $10.');
-        const data = await json('/api/pqi/config', {
+        return json('/api/pqi/config', {
             method: 'POST', headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
             body: JSON.stringify({
                 exchange: $('exchange-select')?.value || 'binance',
-                market: $('market-select')?.value || window.__pqiSelectedMarket || '',
+                market,
                 market_type: $('market-type-select')?.value || 'spot',
-                capital
+                capital,
+                mode: pageMode === 'live' ? 'live' : 'trial',
+                new_session: pendingNewSession
             })
         });
-        capitalDirty = false;
-        return data;
     }
 
-    async function engage() {
+    async function engage(options = {}) {
         const btn = $('engage-pqi');
+        const createNew = options.newSession === true || pendingNewSession;
         try {
             const capital = Number($('capital-input')?.value);
+            const market = pendingNewSession
+                ? (pendingTrialConfig?.market || $('market-select')?.value || '')
+                : ($('market-select')?.value || '');
+            if (!market) throw new Error('Select a trading pair before engaging PQI.');
             if (!Number.isFinite(capital) || capital < 10) throw new Error('Select trading capital of at least $10.');
-            btn && (btn.disabled = true, btn.textContent = 'STARTING MARKET ENGINE...');
+            btn && (btn.disabled = true, btn.textContent = pageMode === 'live' ? 'STARTING LIVE PQI...' : 'STARTING MARKET ENGINE...');
             const data = await json('/api/pqi/engage', {
                 method: 'POST', headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     exchange: $('exchange-select')?.value || 'binance',
-                    market: $('market-select')?.value || window.__pqiSelectedMarket || '',
+                    market,
                     market_type: $('market-type-select')?.value || 'spot',
-                    capital
+                    capital,
+                    mode: pageMode === 'live' ? 'live' : 'trial',
+                    new_session: createNew
                 })
             });
             capitalDirty = false;
+            pendingNewSession = false;
+            pendingTrialConfig = null;
             await loadState();
-            await loadMarkets();
+            await loadSessions();
             return data;
         } catch (e) {
             alert(e.message);
         } finally {
-            if (btn) { btn.disabled = false; btn.textContent = 'ENGAGE PQI'; }
+            if (btn) { btn.disabled = false; btn.textContent = pageMode === 'live' ? 'START LIVE PQI' : 'ENGAGE PQI'; }
         }
     }
 
+    async function addTrialSession() {
+        if (pageMode === 'live') {
+            window.location.href = '/trading';
+            return;
+        }
+        if (!window.__pqiLastState || window.__pqiLastState.mode !== 'trial') return;
+
+        // Do not create/engage anything here. Put the existing market controls
+        // into "new session" mode and let the user choose the configuration.
+        pendingNewSession = true;
+        await loadMarkets();
+        const panel = document.querySelector('.market-control-panel');
+        panel?.scrollIntoView({behavior: 'smooth', block: 'center'});
+        $('market-select')?.focus();
+    }
+
     async function command(url) {
-        try { await json(url, {method: 'POST'}); await loadState(); } catch (e) { alert(e.message); }
+        try { await json(url, {method: 'POST'}); await loadState(); await loadSessions(); } catch (e) { alert(e.message); }
+    }
+
+    async function selectSession(sessionId) {
+        try {
+            await json('/api/pqi/session/select', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({session_id: sessionId})
+            });
+            await loadState();
+            await loadSessions();
+            await loadCapital();
+        } catch (e) { alert(e.message); }
+    }
+
+    function renderSessions(items) {
+        const host = $('pqi-session-list');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!items.length) {
+            host.innerHTML = '<span class="session-empty">No active PQI sessions</span>';
+            return;
+        }
+        items.forEach(item => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `pqi-session-tab${item.selected ? ' active' : ''}`;
+            const pairs = (item.pairs || []).join(', ') || '--';
+            button.innerHTML = `<span>${item.mode === 'live' ? 'LIVE' : 'TRIAL'} · ${item.exchange.toUpperCase()}</span><strong>${pairs}</strong><small>${Number(item.confidence || 0).toFixed(1)}% · ${item.decision || 'WAITING'}</small>`;
+            button.addEventListener('click', () => selectSession(item.id));
+            host.appendChild(button);
+        });
+    }
+
+    async function loadSessions() {
+        try {
+            const data = await json('/api/pqi/sessions');
+            renderSessions(data.sessions || []);
+        } catch (e) { console.error('PQI sessions:', e); }
     }
 
     async function loadState() {
@@ -183,13 +266,9 @@
             set('market-high', state.high_24h ? Number(state.high_24h).toLocaleString(undefined, {maximumFractionDigits: 8}) : '--');
             set('market-low', state.low_24h ? Number(state.low_24h).toLocaleString(undefined, {maximumFractionDigits: 8}) : '--');
             set('market-connection', state.connection_status); set('market-feed-error', state.market_status === 'ERROR' ? state.current_decision : '');
-            if ($('market-select') && state.symbol) {
-                const marketSelect = $('market-select');
-                const hasStateSymbol = [...marketSelect.options].some(option => option.value === state.symbol);
-                if (hasStateSymbol && !window.__pqiUserSelectedMarket) {
-                    marketSelect.value = state.symbol;
-                    window.__pqiSelectedMarket = state.symbol;
-                }
+            if ($('market-select') && state.symbol && !pendingNewSession) {
+                $('market-select').value = state.symbol;
+                window.__pqiSelectedMarket = state.symbol;
             }
             if (window.PQICharts) { window.PQICharts.priceChart(state.candles || []); window.PQICharts.equityChart(state.equity_curve || []); }
             updateIntelligence(state); updatePortfolio(state); updateTrading(state);
@@ -215,38 +294,55 @@
 
     function updateTrading(state) {
         set('exec-status', state.status); set('exec-task', state.current_task); set('exec-decision', state.current_decision); set('exec-exchange', state.exchange); set('exec-market', state.market);
-        set('exec-risk', state.connection_status === 'ERROR' ? 'BLOCKED' : 'MONITORED');
+        set('exec-risk', state.connection_status === 'ERROR' ? 'BLOCKED' : (state.mode === 'live' ? (state.exchange_connected ? 'MONITORED' : 'CONNECTING') : 'PAPER'));
         const log = $('execution-log');
         if (log && state.execution_log) log.innerHTML = state.execution_log.map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${state.exchange}</td><td>${x.symbol || state.market}</td><td>${x.side || '--'}</td><td>${x.status || '--'}</td></tr>`).join('');
     }
 
     document.addEventListener('DOMContentLoaded', () => {
         if (!$('pqi-status') && !$('engage-pqi') && !$('market-select') && !$('confidence') && !$('portfolio')) return;
-        $('engage-pqi')?.addEventListener('click', engage);
+        $('engage-pqi')?.addEventListener('click', () => engage());
+        $('add-trial-pqi')?.addEventListener('click', addTrialSession);
         $('pause-pqi')?.addEventListener('click', () => command('/api/pqi/pause'));
         $('stop-pqi')?.addEventListener('click', () => command('/api/pqi/stop'));
-        $('configure-pqi')?.addEventListener('click', async () => { try { await configure(); await loadState(); } catch(e) { alert(e.message); } });
+        $('configure-pqi')?.addEventListener('click', async () => {
+            try {
+                const result = await configure();
+                if (pendingNewSession) {
+                    pendingTrialConfig = result.applied || {
+                        market: $('market-select')?.value || '',
+                        exchange: $('exchange-select')?.value || 'binance',
+                        market_type: $('market-type-select')?.value || 'spot',
+                        capital: Number($('capital-input')?.value || 0)
+                    };
+                    window.__pqiSelectedMarket = pendingTrialConfig.market;
+                    if ($('market-select')) $('market-select').value = pendingTrialConfig.market;
+                    set('market-feed-error', `New ${pendingTrialConfig.market} configuration applied. Press ENGAGE PQI to start the new session.`);
+                } else {
+                    await loadState();
+                }
+            } catch(e) { alert(e.message); }
+        });
         $('exchange-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });
         $('market-type-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });
-        $('market-select')?.addEventListener('change', async () => {
-            const selected = $('market-select').value;
-            if (!selected) return;
-            window.__pqiSelectedMarket = selected;
-            window.__pqiUserSelectedMarket = true;
-            try {
-                // Keep the running engine synchronized with the dashboard selection.
-                await configure();
-                await loadPreview();
-                await loadState();
-            } catch (e) {
-                set('market-feed-error', e.message);
+        $('market-select')?.addEventListener('change', () => {
+            window.__pqiSelectedMarket = $('market-select').value;
+            if (pendingNewSession) {
+                pendingTrialConfig = {
+                    ...(pendingTrialConfig || {}),
+                    market: $('market-select').value,
+                    exchange: $('exchange-select')?.value || 'binance',
+                    market_type: $('market-type-select')?.value || 'spot',
+                    capital: Number($('capital-input')?.value || 0)
+                };
             }
+            loadPreview();
         });
         $('capital-input')?.addEventListener('input', () => { capitalDirty = true; });
-        document.querySelectorAll('.capital-preset').forEach(b => b.addEventListener('click', () => { const input=$('capital-input') || $('trial-capital'); if(input){input.value=b.dataset.value; input.dispatchEvent(new Event('input',{bubbles:true}));} }));
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) { window.__pqiUserSelectedMarket = false; loadMarkets(); loadState(); loadCapital(); } });
-        window.__pqiUserSelectedMarket = false;
-        loadMarkets(); loadCapital(); loadState();
-        setInterval(loadState, 1500); setInterval(loadCapital, 5000); setInterval(() => { if (document.visibilityState === 'visible' && (!$('pqi-status') || $('pqi-status').textContent !== 'ACTIVE')) loadPreview(); }, 10000);
+        document.querySelectorAll('.capital-preset').forEach(b => b.addEventListener('click', () => { const input=$('capital-input'); if(input){input.value=b.dataset.value; input.dispatchEvent(new Event('input',{bubbles:true}));} }));
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadMarkets(); loadState(); loadCapital(); loadSessions(); } });
+        loadMarkets(); loadCapital(); loadState(); loadSessions();
+        setInterval(loadState, 1500); setInterval(loadSessions, 5000); setInterval(loadCapital, 5000);
+        setInterval(() => { if (document.visibilityState === 'visible' && (!$('pqi-status') || $('pqi-status').textContent !== 'ACTIVE')) loadPreview(); }, 10000);
     });
 })();

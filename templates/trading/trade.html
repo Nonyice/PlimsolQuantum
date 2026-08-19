@@ -1,6 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Trading{% endblock %}
 {% block content %}
-<section class="dashboard"><div class="hero-card"><span class="eyebrow">EXECUTION LAYER</span><h2>PQI TRADING ENGINE</h2><p>Same market feed and intelligence pipeline; trial executes on paper, live executes against the authorized exchange.</p></div><div class="glass-card market-control-panel"><div class="control-grid"><div class="form-group"><label>Exchange</label><select id="exchange-select"><option value="binance">Binance</option><option value="bybit">Bybit</option></select></div><div class="form-group"><label>Market</label><select id="market-type-select"><option value="spot">Spot</option><option value="futures">Futures</option></select></div><div class="form-group"><label>Trading Pair</label><select id="market-select"><option value="BTCUSDT">Loading...</option></select></div><div class="form-group"><label>Capital (USDT)</label><input id="capital-input" type="number" min="10" step="0.01" placeholder="Minimum $10"></div></div><div class="capital-row"><span>Available: <strong id="capital-available">$0.00</strong></span><div class="capital-presets"><button type="button" class="capital-preset" data-value="10">$10</button><button type="button" class="capital-preset" data-value="100">$100</button><button type="button" class="capital-preset" data-value="1000">$1K</button><button type="button" class="capital-preset" data-value="10000">$10K</button></div></div><div class="action-buttons command-bar"><button id="configure-pqi" class="btn-secondary" type="button">APPLY</button><button id="engage-pqi" class="btn-primary" type="button">ENGAGE PQI</button><button id="pause-pqi" class="btn-sell" type="button">PAUSE</button><button id="stop-pqi" class="btn-danger" type="button">STOP</button></div></div><div class="dashboard-grid"><div class="glass-card chart-card"><h2>LIVE CANDLESTICK FEED</h2><canvas id="priceChart"></canvas></div><div class="stats-grid compact-grid"><div class="card"><h3>Status</h3><span id="exec-status">IDLE</span></div><div class="card"><h3>Decision</h3><span id="exec-decision">WAITING</span></div><div class="card"><h3>Exchange</h3><span id="exec-exchange">--</span></div><div class="card"><h3>Market</h3><span id="exec-market">--</span></div><div class="card"><h3>Task</h3><span id="exec-task">--</span></div><div class="card"><h3>Risk</h3><span id="exec-risk">--</span></div></div></div><div class="glass-card"><h2>EXECUTION LOG</h2><table class="table"><thead><tr><th>Time</th><th>Exchange</th><th>Symbol</th><th>Decision</th><th>Status</th></tr></thead><tbody id="execution-log"></tbody></table></div></section>
+<section class="dashboard trading-page">
+    <div class="hero-card">
+        <div><span class="eyebrow">EXECUTION LAYER</span><h2>PQI TRADING ENGINE</h2><p>Trial and live sessions use the same market feed, intelligence, risk and execution dashboard.</p></div>
+        <div class="engine-status"><span class="pulse-dot"></span><span id="pqi-status">IDLE</span></div>
+    </div>
+
+    <div class="glass-card pqi-sessions-card">
+        <div class="section-heading"><div><h2>ACTIVE PQI SESSIONS</h2><p>Select a session without stopping the others.</p></div><div class="session-actions"><button id="add-trial-pqi" class="btn-secondary" type="button">+ ADD TRIAL</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE</a></div></div>
+        <div id="pqi-session-list" class="pqi-session-list"></div>
+    </div>
+
+    <div class="glass-card market-control-panel">
+        <div class="section-heading"><div><h2>MARKET & CAPITAL</h2><p id="capital-hint">Loading exchange market environment...</p></div><span id="capital-mode" class="mode-badge">--</span></div>
+        <div class="control-grid">
+            <div class="form-group"><label>Exchange</label><select id="exchange-select"><option value="binance">Binance</option><option value="bybit">Bybit</option></select></div>
+            <div class="form-group"><label>Market</label><select id="market-type-select"><option value="spot">Spot</option><option value="futures">Futures</option></select></div>
+            <div class="form-group"><label>Trading Pair</label><select id="market-select"><option value="BTCUSDT">Loading...</option></select></div>
+            <div class="form-group"><label>Capital (USDT)</label><input id="capital-input" type="number" min="10" step="0.01" placeholder="Minimum $10"></div>
+        </div>
+        <div class="capital-row"><span>Available: <strong id="capital-available">$0.00</strong></span><div class="capital-presets"><button type="button" class="capital-preset" data-value="10">$10</button><button type="button" class="capital-preset" data-value="100">$100</button><button type="button" class="capital-preset" data-value="1000">$1K</button><button type="button" class="capital-preset" data-value="10000">$10K</button></div></div>
+        <div class="action-buttons command-bar"><button id="configure-pqi" class="btn-secondary" type="button">APPLY</button><button id="engage-pqi" class="btn-primary" type="button">{% if request.args.get('mode') == 'live' %}START LIVE PQI{% else %}ENGAGE PQI{% endif %}</button><button id="pause-pqi" class="btn-sell" type="button">PAUSE</button><button id="stop-pqi" class="btn-danger" type="button">STOP</button></div>
+        <small id="market-feed-error" class="error-text"></small>
+    </div>
+
+    <div class="stats-grid compact-grid trading-stats-grid">
+        <div class="card"><h3>Status</h3><span id="exec-status">IDLE</span></div><div class="card"><h3>Decision</h3><span id="exec-decision">WAITING</span></div><div class="card"><h3>Exchange</h3><span id="exec-exchange">--</span></div><div class="card"><h3>Market</h3><span id="exec-market">--</span></div><div class="card"><h3>Task</h3><span id="exec-task">--</span></div><div class="card"><h3>Risk</h3><span id="exec-risk">--</span></div><div class="card"><h3>Confidence</h3><span id="confidence">0.00%</span></div><div class="card"><h3>Regime</h3><span id="regime">--</span></div>
+    </div>
+
+    <div class="dashboard-grid market-grid"><div class="glass-card chart-card"><div class="section-heading"><div><h2>LIVE MARKET · CANDLESTICK</h2><p><span id="market-connection">DISCONNECTED</span> · Bid <b id="market-bid">--</b> · Ask <b id="market-ask">--</b></p></div></div><canvas id="priceChart"></canvas></div><div class="glass-card market-stats"><h2>MARKET FEED</h2><div class="market-feed-grid"><div><small>24H VOLUME</small><b id="market-volume">--</b></div><div><small>24H HIGH</small><b id="market-high">--</b></div><div><small>24H LOW</small><b id="market-low">--</b></div><div><small>SPREAD</small><b id="market-spread">--</b></div></div></div></div>
+
+    <div class="glass-card"><h2>EXECUTION LOG</h2><div class="table-responsive"><table class="table execution-table"><thead><tr><th>Time</th><th>Exchange</th><th>Symbol</th><th>Decision</th><th>Status</th></tr></thead><tbody id="execution-log"></tbody></table></div></div>
+</section>
 {% endblock %}
-{% block scripts %}{% endblock %}

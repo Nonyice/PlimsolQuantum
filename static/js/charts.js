@@ -84,10 +84,16 @@
         ctx.fillText(`$${hi.toFixed(2)}`, 5, y(hi) + 4); ctx.fillText(`$${lo.toFixed(2)}`, 5, y(lo) + 4);
     }
 
-    window.PQICharts = { priceChart, equityChart };
+    function renderTimeframe(state, timeframe) {
+        const tf = timeframe || '1h';
+        const candles = state?.candles_by_timeframe?.[tf] || state?.candles || [];
+        priceChart(candles);
+    }
+
+    window.PQICharts = { priceChart, equityChart, renderTimeframe };
     window.addEventListener('resize', () => {
         if (window.__pqiLastState) {
-            priceChart(window.__pqiLastState.candles || []);
+            renderTimeframe(window.__pqiLastState, document.getElementById("chart-timeframe")?.value || "1h");
             equityChart(window.__pqiLastState.equity_curve || []);
         }
     });

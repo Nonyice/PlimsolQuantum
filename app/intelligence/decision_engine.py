@@ -29,75 +29,128 @@ class Decision:
 
 class DecisionEngine:
     """
-    Final intelligence layer.
+    Final PQI execution decision.
 
-    Converts the Opportunity into an executable
-    trading decision.
+    CONFIDENCE IS THE PRIMARY EXECUTION GATE.
 
-    This engine NEVER analyses indicators.
+    At 60.1% confidence or higher, PQI is allowed to act provided a valid
+    direction exists.
 
-    It only makes execution decisions.
+    The old opportunity.tradable gate is intentionally NOT checked here.
+
+    Direction comes from OpportunityEngine:
+
+        BULLISH -> BUY
+        BEARISH -> SELL
+
+    Spot rules:
+
+        BUY  -> open/increase LONG
+        SELL -> close existing LONG
+
+    Futures rules:
+
+        BUY  -> LONG
+        SELL -> SHORT
     """
 
+    MIN_EXECUTION_CONFIDENCE = 60.1
+
     def decide(
-
         self,
-
         opportunity,
-
         trend,
-
         momentum,
-
         volatility,
-
         personality,
-
         trading_account,
-
+        existing_position=None,
     ):
 
-        # ------------------------------------
-        # Reject poor opportunities
-        # ------------------------------------
+        confidence = float(
+            getattr(
+                opportunity,
+                "probability",
+                0.0,
+            )
+            or 0.0
+        )
 
-        if not opportunity.tradable:
+        market_type = trading_account.market_type
 
-            return Decision(
-
-                action="NONE",
-
-                market=trading_account.market_type.value,
-
-                position="NONE",
-
-                confidence=opportunity.probability,
-
-                leverage=1,
-
-                risk_percent=0,
-
-                stop_multiplier=0,
-
-                take_profit_rr=0,
-
-                should_execute=False,
-
-                reason=opportunity.reason,
-
+        if not isinstance(
+            market_type,
+            MarketType,
+        ):
+            market_type = MarketType(
+                str(market_type).lower()
             )
 
-        # ------------------------------------
-        # BUY / SELL
-        # ------------------------------------
+        # ============================================================
+        # CONFIDENCE GATE
+        # ============================================================
+        #
+        # This is intentionally the FIRST meaningful execution gate.
+        #
+        # 60.1% and above can execute.
+        #
 
-        if personality.bullish:
+        if confidence < self.MIN_EXECUTION_CONFIDENCE:
+
+            return self._none(
+                market_type=market_type,
+                confidence=confidence,
+                reason=(
+                    f"Confidence {confidence:.2f}% is below "
+                    f"the {self.MIN_EXECUTION_CONFIDENCE:.1f}% "
+                    "execution threshold."
+                ),
+            )
+
+        # ============================================================
+        # DIRECTION
+        # ============================================================
+
+        direction = str(
+            getattr(
+                opportunity,
+                "direction",
+                "",
+            )
+            or ""
+        ).upper()
+
+        # Compatibility fallback in case an older Opportunity object
+        # has no direction field.
+
+        if direction not in {
+            "BULLISH",
+            "BEARISH",
+        }:
+
+            if getattr(
+                personality,
+                "bullish",
+                False,
+            ):
+
+                direction = "BULLISH"
+
+            elif getattr(
+                personality,
+                "bearish",
+                False,
+            ):
+
+                direction = "BEARISH"
+
+        if direction == "BULLISH":
 
             action = "BUY"
 
             position = "LONG"
 
-        elif personality.bearish:
+        elif direction == "BEARISH":
 
             action = "SELL"
 
@@ -105,87 +158,87 @@ class DecisionEngine:
 
         else:
 
-            return Decision(
-
-                action="NONE",
-
-                market=trading_account.market_type.value,
-
-                position="NONE",
-
-                confidence=50,
-
-                leverage=1,
-
-                risk_percent=0,
-
-                stop_multiplier=0,
-
-                take_profit_rr=0,
-
-                should_execute=False,
-
-                reason="No directional bias.",
-
+            return self._none(
+                market_type=market_type,
+                confidence=confidence,
+                reason=(
+                    f"Confidence {confidence:.2f}% reached "
+                    "the execution threshold, but no valid "
+                    "BUY/SELL direction was produced."
+                ),
             )
 
-        # ------------------------------------
-        # Spot Restriction
-        # ------------------------------------
+        # ============================================================
+        # SPOT SELL
+        # ============================================================
+        #
+        # Spot cannot create a SHORT.
+        #
+        # But SELL is absolutely valid when PQI already owns the asset.
+        #
+        # Therefore:
+        #
+        #   existing LONG -> SELL -> close LONG
+        #
+        # If there is no position, we cannot sell an asset we do not own.
+        #
 
         if (
-
-            trading_account.market_type
-
-            == MarketType.SPOT
-
-            and
-
-            action == "SELL"
-
+            market_type == MarketType.SPOT
+            and action == "SELL"
         ):
 
-            return Decision(
+            normalized_position = str(
+                existing_position or ""
+            ).upper()
 
-                action="NONE",
+            if normalized_position in {
+                "LONG",
+                "SPOT",
+                "HOLDING",
+                "ASSET",
+            }:
 
-                market="SPOT",
+                position = "LONG"
 
-                position="NONE",
+            else:
 
-                confidence=0,
+                return self._none(
+                    market_type=market_type,
+                    confidence=confidence,
+                    reason=(
+                        f"Confidence {confidence:.2f}% confirms "
+                        "a bearish signal, but SPOT has no existing "
+                        "LONG position/asset to sell."
+                    ),
+                )
 
-                leverage=1,
-
-                risk_percent=0,
-
-                stop_multiplier=0,
-
-                take_profit_rr=0,
-
-                should_execute=False,
-
-                reason="Spot market cannot short.",
-
-            )
-
-        # ------------------------------------
-        # Futures Leverage
-        # ------------------------------------
+        # ============================================================
+        # FUTURES LEVERAGE
+        # ============================================================
 
         leverage = 1
 
-        if trading_account.market_type == MarketType.FUTURES:
+        if market_type == MarketType.FUTURES:
 
-            if opportunity.score >= 95:
+            score = float(
+                getattr(
+                    opportunity,
+                    "score",
+                    0.0,
+                )
+                or 0.0
+            )
+
+            if score >= 95:
 
                 leverage = 5
 
-            elif opportunity.score >= 90:
+            elif score >= 90:
 
                 leverage = 4
 
-            elif opportunity.score >= 85:
+            elif score >= 85:
 
                 leverage = 3
 
@@ -193,15 +246,24 @@ class DecisionEngine:
 
                 leverage = 2
 
-        # ------------------------------------
-        # Risk %
-        # ------------------------------------
+        # ============================================================
+        # RISK
+        # ============================================================
 
-        if opportunity.grade == "A+":
+        grade = str(
+            getattr(
+                opportunity,
+                "grade",
+                "",
+            )
+            or ""
+        )
+
+        if grade == "A+":
 
             risk = 2.0
 
-        elif opportunity.grade == "A":
+        elif grade == "A":
 
             risk = 1.5
 
@@ -209,42 +271,113 @@ class DecisionEngine:
 
             risk = 1.0
 
-        # ------------------------------------
-        # Take Profit
-        # ------------------------------------
+        # ============================================================
+        # TAKE PROFIT
+        # ============================================================
 
-        if volatility.overall_regime == "HIGH":
+        regime = getattr(
+            volatility,
+            "overall_regime",
+            "NORMAL",
+        )
 
-            rr = 4.0
+        if regime == "HIGH":
 
-        elif volatility.overall_regime == "NORMAL":
+            rr = 2.5
 
-            rr = 3.0
+        elif regime == "NORMAL":
+
+            rr = 2.0
 
         else:
 
-            rr = 2.0
+            rr = 1.75
+
+        # ============================================================
+        # APPROVED
+        # ============================================================
+
+        if (
+            market_type == MarketType.SPOT
+            and action == "SELL"
+        ):
+
+            reason = (
+                f"SELL approved: confidence "
+                f"{confidence:.2f}% >= "
+                f"{self.MIN_EXECUTION_CONFIDENCE:.1f}%; "
+                "closing existing SPOT LONG."
+            )
+
+        else:
+
+            reason = (
+                f"{action} approved: confidence "
+                f"{confidence:.2f}% >= "
+                f"{self.MIN_EXECUTION_CONFIDENCE:.1f}%; "
+                f"direction={direction}."
+            )
 
         return Decision(
 
             action=action,
 
-            market=trading_account.market_type.value,
+            market=market_type.value,
 
             position=position,
 
-            confidence=opportunity.probability,
+            confidence=confidence,
 
             leverage=leverage,
 
             risk_percent=risk,
 
-            stop_multiplier=volatility.recommended_stop_multiplier,
+            stop_multiplier=float(
+                getattr(
+                    volatility,
+                    "recommended_stop_multiplier",
+                    0,
+                )
+                or 0
+            ),
 
             take_profit_rr=rr,
 
             should_execute=True,
 
-            reason=f"{opportunity.grade} setup approved.",
+            reason=reason,
+        )
 
+    # ================================================================
+    # NONE DECISION
+    # ================================================================
+
+    @staticmethod
+    def _none(
+        market_type,
+        confidence,
+        reason,
+    ):
+
+        return Decision(
+
+            action="NONE",
+
+            market=market_type.value,
+
+            position="NONE",
+
+            confidence=confidence,
+
+            leverage=1,
+
+            risk_percent=0,
+
+            stop_multiplier=0,
+
+            take_profit_rr=0,
+
+            should_execute=False,
+
+            reason=reason,
         )

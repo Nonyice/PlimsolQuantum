@@ -198,6 +198,57 @@ class MarketPersonalityEngine:
             )
 
         # ----------------------------------------------------
+        # Developing trend continuation
+        # ----------------------------------------------------
+        # This branch is intentionally part of the same if/elif chain as the
+        # healthy-trend rules above. The previous standalone `if` overwrote a
+        # HEALTHY_UPTREND/HEALTHY_DOWNTREND confidence with a fixed 76%.
+        # Confidence is now derived from the actual 1h trend strength and
+        # supporting evidence instead of a hard-coded value.
+        anchor = trend.trends.get("1h")
+
+        def continuation_confidence(anchor):
+            adx = float(anchor.adx or 0)
+            adx_quality = max(0.0, min(1.0, (adx - 18.0) / 22.0))
+            alignment = max(0.0, min(1.0, float(trend.alignment_score or 0)))
+            momentum_quality = max(0.0, min(1.0, float(momentum.confidence or 0) / 100.0))
+            volume_quality = max(0.0, min(1.0, float(volume.confidence or 0) / 100.0))
+            value = 58 + (14 * alignment) + (13 * adx_quality) + (10 * momentum_quality) + (5 * volume_quality)
+            if volatility.overall_regime == "NORMAL":
+                value += 3
+            elif volatility.overall_regime == "HIGH" and volume.confirmed:
+                value += 1
+            return round(min(value, 94), 2)
+
+        if (
+            personality == "NEUTRAL"
+            and
+            trend.overall_direction == "BULLISH"
+            and momentum.overall_direction == "BULLISH"
+            and anchor is not None
+            and float(anchor.adx or 0) >= 18
+            and volatility.overall_regime != "HIGH"
+        ):
+            personality = "TREND_CONTINUATION"
+            confidence = continuation_confidence(anchor)
+            bullish = True
+            tradable = True
+            description = "Developing bullish 1h trend with aligned momentum."
+
+        elif (
+            trend.overall_direction == "BEARISH"
+            and momentum.overall_direction == "BEARISH"
+            and anchor is not None
+            and float(anchor.adx or 0) >= 18
+            and volatility.overall_regime != "HIGH"
+        ):
+            personality = "TREND_CONTINUATION"
+            confidence = continuation_confidence(anchor)
+            bearish = True
+            tradable = True
+            description = "Developing bearish 1h trend with aligned momentum."
+
+        # ----------------------------------------------------
         # Compression
         # ----------------------------------------------------
 

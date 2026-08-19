@@ -33,7 +33,7 @@ class PQI:
         volatility = self.volatility.analyse(snapshot)
         support = self.support.analyse(snapshot)
         personality = self.personality.analyse(trend, momentum, volume, volatility, support)
-        opportunity = self.opportunity.evaluate(trend, momentum, volume, volatility, support, personality)
+        opportunity = self.opportunity.evaluate(trend, momentum, volume, volatility, support, personality, snapshot=snapshot)
         decision = self.decision.decide(opportunity, trend, momentum, volatility, personality, trading_account)
         return {
             "snapshot": snapshot,

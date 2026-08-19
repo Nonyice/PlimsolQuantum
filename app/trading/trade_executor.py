@@ -6,6 +6,8 @@ from app.learning.journal import Journal
 
 from app.models.trade import Trade
 
+from app.trading.position_manager import PositionManager
+
 
 class TradeExecutor:
     """
@@ -16,6 +18,8 @@ class TradeExecutor:
     def __init__(self):
 
         self.journal = Journal()
+
+        self.positions = PositionManager()
 
     async def execute(
         self,
@@ -136,6 +140,22 @@ class TradeExecutor:
 
         )
 
+        # RiskGuardian's portfolio-level checks (max concurrent positions,
+        # duplicate-symbol block, daily loss circuit breaker) read this
+        # table, so a fill has to be recorded here or those checks are
+        # always looking at an empty set.
+        self.positions.open_position(
+            trading_account=trading_account,
+            execution={
+                "symbol": symbol,
+                "action": action,
+                "quantity": quantity,
+                "entry_price": risk["entry_price"],
+                "stop_loss": risk["stop_loss"],
+                "take_profit": risk["take_profit"],
+            },
+        )
+
         return {
 
             "success": True,
@@ -157,7 +177,44 @@ class TradeExecutor:
     async def close_position(
         self,
         exchange,
+        trading_account,
         symbol,
+        exit_price,
+        exit_reason,
     ):
+        """Close on the exchange, then close the Position row and mark the
+        matching Trade CLOSED. Recording a TradeOutcome (win/loss, PnL) is
+        the caller's job (see PositionMonitor) once fees are known.
+        """
 
-        return await exchange.close_position(symbol)
+        exchange_result = await exchange.close_position(symbol)
+
+        position = self.positions.get_position(trading_account, symbol)
+
+        if position is not None:
+            self.positions.close_position(position, exit_price)
+
+        from app.extensions import db
+
+        trade = (
+            Trade.query
+            .filter_by(
+                trading_account_id=trading_account.id,
+                symbol=symbol,
+                status=TradeStatus.OPEN,
+            )
+            .order_by(Trade.opened_at.desc())
+            .first()
+        )
+
+        if trade is not None:
+            trade.status = TradeStatus.CLOSED
+            trade.closed_at = datetime.utcnow()
+            db.session.commit()
+
+        return {
+            "success": True,
+            "trade_id": trade.id if trade is not None else None,
+            "exit_reason": exit_reason,
+            "exchange_response": exchange_result,
+        }
