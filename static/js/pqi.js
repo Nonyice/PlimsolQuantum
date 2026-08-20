@@ -26,6 +26,39 @@
 
     function set(id, value) { const el = $(id); if (el) el.textContent = value ?? '--'; }
 
+    function showFeedback(type, message) {
+        const panel = document.querySelector('.market-control-panel');
+        if (!panel) return;
+        let box = $('pqi-feedback');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'pqi-feedback';
+            panel.appendChild(box);
+        }
+        box.className = `pqi-feedback ${type}`;
+        box.innerHTML = `<strong>${type === 'success' ? 'SUCCESS' : type === 'warning' ? 'CHECK REQUIRED' : 'ERROR'}</strong><span>${message}</span>`;
+        box.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    }
+
+    function showTrialGuide(activeStep = 1, message = '') {
+        const panel = document.querySelector('.market-control-panel');
+        if (!panel || pageMode === 'live') return;
+        let guide = $('pqi-trial-guide');
+        if (!guide) {
+            guide = document.createElement('div');
+            guide.id = 'pqi-trial-guide';
+            guide.className = 'pqi-trial-guide';
+            const heading = panel.querySelector('.section-heading');
+            heading?.insertAdjacentElement('afterend', guide);
+        }
+        const steps = [
+            ['1', 'Configure', 'Select exchange, market type, trading pair and PQI capital.'],
+            ['2', 'Apply', 'Click APPLY MARKET to validate and save the configuration.'],
+            ['3', 'Engage', 'Click ENGAGE PQI to create and start the new trial session.']
+        ];
+        guide.innerHTML = `<div class="pqi-guide-title"><strong>START A NEW PQI TRIAL</strong><span>${message || 'Follow these three steps. Your existing sessions remain untouched.'}</span></div><div class="pqi-guide-steps">${steps.map(([n,title,text],i) => `<div class="pqi-guide-step ${activeStep === i+1 ? 'active' : activeStep > i+1 ? 'done' : ''}"><b>${n}</b><div><strong>${title}</strong><small>${text}</small></div></div>`).join('')}</div>`;
+    }
+
     function populateMarkets(markets) {
         const select = $('market-select');
         if (!select) return;
@@ -169,11 +202,14 @@
             capitalDirty = false;
             pendingNewSession = false;
             pendingTrialConfig = null;
+            showFeedback('success', pageMode === 'live'
+                ? 'Live PQI has been engaged. The selected PQI capital will continue to be used for the next trade while realised PnL remains on the connected exchange account.'
+                : 'PQI trial engaged successfully. Paper PnL will remain preserved in the trial portfolio while the selected PQI capital is reused for the next trade.');
             await loadState();
             await loadSessions();
             return data;
         } catch (e) {
-            alert(e.message);
+            showFeedback('error', e.message);
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = pageMode === 'live' ? 'START LIVE PQI' : 'ENGAGE PQI'; }
         }
@@ -189,6 +225,9 @@
         // Do not create/engage anything here. Put the existing market controls
         // into "new session" mode and let the user choose the configuration.
         pendingNewSession = true;
+        pendingTrialConfig = null;
+        showTrialGuide(1);
+        showFeedback('warning', 'Choose the exchange, market type, pair and capital first. Nothing has been started yet.');
         await loadMarkets();
         const panel = document.querySelector('.market-control-panel');
         panel?.scrollIntoView({behavior: 'smooth', block: 'center'});
@@ -246,6 +285,8 @@
             set('regime', state.market_regime || '--'); set('positions', state.open_positions);
             set('portfolio', money(state.portfolio_value)); set('starting-capital', money(state.starting_capital));
             set('available-capital', money(state.available_capital)); set('daily-pnl', money(state.daily_pnl));
+            set('live-account-balance', state.live_account_balance != null ? money(state.live_account_balance) : '--');
+            set('live-realised-pnl', state.live_realised_pnl != null ? money(state.live_realised_pnl) : '--');
             set('nextscan', state.next_scan ? new Date(state.next_scan).toLocaleTimeString() : '--'); set('task', state.current_task);
             set('signals', state.signals_analysed); set('trades', state.trades_today); set('winrate', `${Number(state.win_rate || 0).toFixed(2)}%`);
             set('risk', `${Number(state.risk_exposure || 0).toFixed(2)}%`);
@@ -287,9 +328,23 @@
     }
 
     function updatePortfolio(state) {
-        set('portfolio', money(state.portfolio_value)); set('starting-capital', money(state.starting_capital)); set('available-capital', money(state.available_capital));
+        set('portfolio', money(state.mode === 'live' && state.live_account_balance != null ? state.live_account_balance : state.portfolio_value));
+        set('starting-capital', money(state.starting_capital));
+        set('available-capital', money(state.available_capital));
+        set('realised-pnl', money(state.realised_pnl));
+        set('unrealised-pnl', money(state.unrealised_pnl));
         const position = state.paper_position, body = $('positions-table');
-        if (body && body.closest('.dashboard') === null) body.innerHTML = position ? `<tr><td>${position.symbol}</td><td>${position.side}</td><td>${Number(position.quantity).toFixed(6)}</td><td>${money(position.entry_price)}</td><td>${money(position.mark_price)}</td><td>${money(position.pnl)}</td><td>OPEN</td></tr>` : '<tr><td colspan="7">No open PQI position.</td></tr>';
+        if (body && body.closest('.dashboard') === null) body.innerHTML = position ? `<tr><td>${position.symbol}</td><td>${position.side}</td><td>${Number(position.quantity || 0).toFixed(6)}</td><td>${money(position.entry_price)}</td><td>${money(position.mark_price)}</td><td>${money(position.stop_loss)}</td><td>${money(position.take_profit)}</td><td>${money(position.pnl)}</td><td>OPEN</td></tr>` : '<tr><td colspan="9">No open PQI position.</td></tr>';
+        const pairs = $('pair-performance-body');
+        if (pairs) {
+            const items = state.session_pairs || [];
+            pairs.innerHTML = items.length ? items.slice().reverse().map(p => `<tr><td><strong>${p.symbol}</strong></td><td>${p.status || '--'}</td><td>${p.side || '--'}</td><td>${money(p.allocation)}</td><td>${p.entry_price ? money(p.entry_price) : '--'}</td><td>${p.stop_loss ? money(p.stop_loss) : '--'}</td><td>${p.take_profit ? money(p.take_profit) : '--'}</td><td>${money(p.pnl)}</td><td>${money(p.pair_balance)}</td></tr>`).join('') : '<tr><td colspan="9">No pair trade footprint yet.</td></tr>';
+        }
+        const footprints = $('trade-footprints-body');
+        if (footprints) {
+            const log = (state.execution_log || []).filter(x => x.status === 'PAPER OPEN' || x.status === 'PAPER CLOSE');
+            footprints.innerHTML = log.length ? log.slice(0, 20).map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${x.symbol || '--'}</td><td>${x.status || '--'}</td><td>${x.reason || '--'}</td><td>${x.entry_price ? money(x.entry_price) : '--'}</td><td>${x.stop_loss ? money(x.stop_loss) : '--'}</td><td>${x.take_profit ? money(x.take_profit) : '--'}</td><td>${money(x.pnl)}</td></tr>`).join('') : '<tr><td colspan="8">No SL/TP footprint recorded yet.</td></tr>';
+        }
     }
 
     function updateTrading(state) {
@@ -317,11 +372,16 @@
                     };
                     window.__pqiSelectedMarket = pendingTrialConfig.market;
                     if ($('market-select')) $('market-select').value = pendingTrialConfig.market;
-                    set('market-feed-error', `New ${pendingTrialConfig.market} configuration applied. Press ENGAGE PQI to start the new session.`);
+                    showTrialGuide(3, 'Configuration accepted. Review the values, then engage PQI to start the new session.');
+                    showFeedback('success', `Configuration applied: ${pendingTrialConfig.exchange.toUpperCase()} · ${pendingTrialConfig.market} · ${pendingTrialConfig.market_type.toUpperCase()} · $${Number(pendingTrialConfig.capital).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}. Click ENGAGE PQI to start.`);
                 } else {
                     await loadState();
+                    showFeedback('success', 'PQI configuration applied successfully.');
                 }
-            } catch(e) { alert(e.message); }
+            } catch(e) {
+                const validation = /select a trading pair|minimum trading capital|valid trading capital/i.test(e.message || '');
+                showFeedback(validation ? 'warning' : 'error', e.message);
+            }
         });
         $('exchange-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });
         $('market-type-select')?.addEventListener('change', async () => { capitalDirty = false; await loadMarkets(); await loadCapital(); });

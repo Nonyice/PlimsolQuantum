@@ -36,6 +36,16 @@
 
 <div class="glass-card pqi-sessions-card"><div class="section-heading"><div><h2>ACTIVE PQI SESSIONS</h2><p>Each session runs independently. Selecting one changes the dashboard view without stopping the others.</p></div></div><div id="pqi-session-list" class="pqi-session-list"></div></div>
 
+
+<div class="glass-card pqi-pair-performance">
+    <div class="section-heading"><div><h2>PQI PAIR PERFORMANCE</h2><p>Each row preserves the trade cycle for the selected pair. The allocation is the configured PQI capital; PnL remains in the portfolio.</p></div></div>
+    <div class="table-responsive"><table class="table pqi-footprint-table"><thead><tr><th>Pair</th><th>Status</th><th>Side</th><th>CA</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th><th>Pair Balance</th></tr></thead><tbody id="pair-performance-body"><tr><td colspan="9">No pair trade footprint yet.</td></tr></tbody></table></div>
+</div>
+<div class="glass-card pqi-trade-footprints">
+    <div class="section-heading"><div><h2>SL / TP TRADE FOOTPRINTS</h2><p>Open and close events retain the entry, stop, target and realised result.</p></div></div>
+    <div class="table-responsive"><table class="table pqi-footprint-table"><thead><tr><th>Time</th><th>Pair</th><th>Event</th><th>Reason</th><th>Entry</th><th>SL</th><th>TP</th><th>PnL</th></tr></thead><tbody id="trade-footprints-body"><tr><td colspan="8">No SL/TP footprint recorded yet.</td></tr></tbody></table></div>
+</div>
+
 <div class="stats-grid">
     <div class="card"><h3>Exchange</h3><span id="exchange">--</span></div>
     <div class="card"><h3>Current Market</h3><span id="market">--</span></div>
@@ -45,6 +55,8 @@
     <div class="card"><h3>Confidence</h3><span id="confidence">0.00%</span></div>
     <div class="card"><h3>Market Regime</h3><span id="regime">--</span></div>
     <div class="card"><h3>Portfolio / Equity</h3><span id="portfolio">$0.00</span></div>
+    <div class="card"><h3>Live Account Balance</h3><span id="live-account-balance">--</span></div>
+    <div class="card"><h3>Live Realised P/L</h3><span id="live-realised-pnl">--</span></div>
     <div class="card"><h3>Today's P/L</h3><span id="daily-pnl">$0.00</span></div>
     <div class="card"><h3>Open Positions</h3><span id="positions">0</span></div>
 </div>

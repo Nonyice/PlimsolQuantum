@@ -33,6 +33,8 @@ class PQIState:
     trades_today: int = 0
     win_rate: float = 0.0
     risk_exposure: float = 0.0
+    live_account_balance: float | None = None
+    live_realised_pnl: float = 0.0
 
     last_price: float | None = None
     bid: float | None = None

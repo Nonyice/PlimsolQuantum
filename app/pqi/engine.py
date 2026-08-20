@@ -301,36 +301,20 @@ class PQIEngine:
         try:
             self._set_phase("Loading Live Trial Market", "SCANNING")
             self._diag(f"Market request: exchange={self._state.exchange}, type={self._state.market_type}")
-
-            # The configured session pairs are the source of truth for the
-            # trading runtime.  Full exchange market discovery is useful for
-            # the selector, but it must never prevent an already configured
-            # pair from being analysed/traded.
-            markets = []
-            try:
-                markets = await asyncio.wait_for(
-                    PublicMarketService.markets(self._state.exchange, self._state.market_type),
-                    timeout=self.MARKET_TIMEOUT,
-                )
-                self._state.markets = markets[:1000]
-                self._diag(f"Market list loaded: {len(markets)} symbols")
-            except (asyncio.TimeoutError, Exception) as exc:
-                self._state.markets = list(getattr(self._state, "markets", []) or [])
-                self._diag(f"Market discovery unavailable ({type(exc).__name__}); continuing with configured session pairs")
+            markets = await asyncio.wait_for(
+                PublicMarketService.markets(self._state.exchange, self._state.market_type),
+                timeout=self.MARKET_TIMEOUT,
+            )
+            self._state.markets = markets[:1000]
+            self._diag(f"Market list loaded: {len(markets)} symbols")
 
             session_obj = PQISession.query.get(self._session_id)
             if not session_obj:
                 raise RuntimeError("Persistent PQI session could not be restored.")
             self._load_pairs(session_obj)
-            configured_symbols = {p["symbol"] for p in self._state.session_pairs}
-            if markets:
-                for pair in list(self._state.session_pairs):
-                    # Do not destroy a persisted position/watchlist record just
-                    # because the optional catalogue request was incomplete.
-                    if pair["symbol"] not in markets and pair.get("status") != "OPEN":
-                        self._diag(f"Configured pair not present in catalogue: {pair['symbol']} (will still be scanned)")
-            if not configured_symbols:
-                raise RuntimeError("No configured trading pair is available for this session.")
+            for pair in list(self._state.session_pairs):
+                if pair["symbol"] not in self._state.markets:
+                    pair["status"] = "UNAVAILABLE"
 
             self._state.exchange_connected = True
             self._state.connection_status = "CONNECTED"
@@ -413,16 +397,6 @@ class PQIEngine:
             self._state.candles_by_timeframe = {tf: self._format_candles(c[-120:]) for tf, c in candles_by_tf.items() if c}
 
             self._set_phase(f"Calculating intelligence: {symbol}", "CALCULATING")
-            # Pass the current position side into intelligence so SPOT can
-            # execute a bearish SELL as a close of an existing LONG instead of
-            # incorrectly treating every SELL as an attempt to open a short.
-            existing_pair = next(
-                (p for p in reversed(self._state.session_pairs)
-                 if p.get("symbol") == symbol and p.get("status") == "OPEN"),
-                None,
-            )
-            existing_side = existing_pair.get("side") if existing_pair else None
-
             analysis = await asyncio.wait_for(
                 asyncio.to_thread(
                     self._analyse_mtf,
@@ -431,18 +405,11 @@ class PQIEngine:
                     self._state.exchange,
                     self._state.market_type,
                     self._state.last_price,
-                    existing_side,
                 ),
                 timeout=self.ANALYSIS_TIMEOUT,
             )
             self._diag(f"Analysis completed: {symbol}")
             self._apply_analysis(analysis, symbol)
-            decision = analysis["decision"]
-            self._diag(
-                f"DECISION {symbol}: action={getattr(decision, 'action', None)} "
-                f"execute={getattr(decision, 'should_execute', None)} "
-                f"confidence={getattr(decision, 'confidence', None)}"
-            )
             self._simulate_paper(analysis, symbol)
             self._persist_pair(symbol)
             self._diag(f"Scan completed: {symbol} | confidence={self._state.confidence}")
@@ -451,7 +418,7 @@ class PQIEngine:
         except Exception as exc:
             self._pair_error(symbol, exc, "scan")
 
-    def _analyse_mtf(self, candles_by_tf, symbol, exchange, market_type, ticker_last=None, existing_side=None):
+    def _analyse_mtf(self, candles_by_tf, symbol, exchange, market_type, ticker_last=None):
         self._diag(f"ANALYSIS START {symbol}: indicators")
         indicator_service, trend, momentum, volume, volatility, support, personality, opportunity = self._components
         snapshot = MarketSnapshot(symbol=symbol.replace("/", ""), exchange=exchange)
@@ -477,24 +444,9 @@ class PQIEngine:
         self._diag(f"ANALYSIS {symbol}: opportunity")
         opportunity_a = opportunity.evaluate(trend_a, momentum_a, volume_a, volatility_a, support_a, personality_a, snapshot=snapshot)
         self._diag(f"ANALYSIS {symbol}: opportunity score={getattr(opportunity_a, 'score', None)} probability={getattr(opportunity_a, 'probability', None)}")
-        # The intelligence/risk layers expect a trading-account-like object.
-        # Trial mode does not have a TradingAccount row, so provide the
-        # persistent PQI session id as a stable synthetic account id.
-        trial_account = SimpleNamespace(
-            id=self._session_id,
-            market_type=MarketType(market_type),
-            exchange=SimpleNamespace(value=exchange),
-        )
+        trial_account = SimpleNamespace(market_type=MarketType(market_type), exchange=SimpleNamespace(value=exchange))
         self._diag(f"ANALYSIS {symbol}: decision")
-        decision = self._decision_engine.decide(
-            opportunity_a,
-            trend_a,
-            momentum_a,
-            volatility_a,
-            personality_a,
-            trial_account,
-            existing_position=existing_side,
-        )
+        decision = self._decision_engine.decide(opportunity_a, trend_a, momentum_a, volatility_a, personality_a, trial_account)
         self._diag(f"ANALYSIS COMPLETE {symbol}: action={getattr(decision, 'action', None)} execute={getattr(decision, 'should_execute', None)} confidence={getattr(decision, 'confidence', None)}")
         return locals()
 
@@ -526,13 +478,43 @@ class PQIEngine:
             "reason": opportunity.reason,
             "signal": decision.action,
             "entry": self._state.last_price,
+            "stop_loss": None,
+            "take_profit": None,
+            "reward_ratio": None,
             "timeframe": "1h anchor / 15m + 4h confirmation",
             "symbol": symbol,
         }
+        # Presentation only: if this pair already has an active trade, expose
+        # its existing SL/TP footprint to the Intelligence page. This does not
+        # participate in or change the decision/action calculation.
+        self._sync_trade_intelligence(symbol)
         self._diag(f"CONFIDENCE UPDATED {symbol}: {self._state.confidence}")
         self._state.activity.insert(0, {"time": utc_now().isoformat(), "message": f"{symbol}: {self._state.current_decision} · confidence {self._state.confidence:.2f} · {opportunity.reason}"})
         self._state.activity = self._state.activity[:50]
         self._state.next_scan = utc_now() + timedelta(seconds=8)
+
+    def _sync_trade_intelligence(self, symbol):
+        """Expose the current pair's trade levels to the UI only."""
+        pair = next(
+            (p for p in reversed(self._state.session_pairs)
+             if p.get("symbol") == symbol and p.get("status") == "OPEN"),
+            None,
+        )
+        if not pair:
+            return
+        entry = float(pair.get("entry_price") or 0)
+        stop = float(pair.get("stop_loss") or 0)
+        target = float(pair.get("take_profit") or 0)
+        rr = None
+        if entry > 0 and stop > 0 and target > 0:
+            risk = abs(entry - stop)
+            rr = abs(target - entry) / risk if risk > 0 else None
+        self._state.intelligence.update({
+            "entry": entry or self._state.intelligence.get("entry"),
+            "stop_loss": stop or None,
+            "take_profit": target or None,
+            "reward_ratio": rr,
+        })
 
     def _simulate_paper(self, a, symbol):
         """Run the trial portfolio as a continuous compounding account.
@@ -593,30 +575,17 @@ class PQIEngine:
                     )
 
             # TP closes a favourable cycle. SL closes an invalidated cycle.
-            # A sufficiently confident opposite decision can also close the
-            # current position. On SPOT this is the correct SELL behaviour:
-            # SELL disposes of the LONG asset already owned by PQI; it does not
-            # create a naked SHORT. The next scan may then open a fresh cycle.
-            decision = a["decision"]
-            closed = False
+            # There is deliberately no direct trend-reversal exit here: the
+            # market's reversal must work through the protective SL. After a
+            # close, the next scan is free to establish a new BUY or SELL cycle.
             if (side == "LONG" and price >= float(pair["take_profit"])) or (
                 side == "SHORT" and price <= float(pair["take_profit"])
             ):
                 self._close_pair(pair, "TAKE PROFIT")
-                closed = True
             elif (side == "LONG" and price <= float(pair["stop_loss"])) or (
                 side == "SHORT" and price >= float(pair["stop_loss"])
             ):
                 self._close_pair(pair, "STOP LOSS")
-                closed = True
-            elif (
-                decision.should_execute
-                and float(getattr(decision, "confidence", 0) or 0) >= 60.1
-                and ((side == "LONG" and decision.action == "SELL")
-                     or (side == "SHORT" and decision.action == "BUY"))
-            ):
-                self._close_pair(pair, f"SIGNAL REVERSAL ({decision.action})")
-                closed = True
 
         else:
             decision = a["decision"]
@@ -638,31 +607,19 @@ class PQIEngine:
                 realised = self._realised_pnl()
                 floating = self._floating_pnl()
                 equity = self._state.trading_capital + realised + floating
-                risk_account = SimpleNamespace(
-                    id=self._session_id,
-                    market_type=MarketType(self._state.market_type),
-                    exchange=SimpleNamespace(value=self._state.exchange),
-                )
                 risk = self._risk_guardian.evaluate(
-                    risk_account,
+                    SimpleNamespace(market_type=MarketType(self._state.market_type)),
                     decision,
                     a["snapshot"],
                     max(equity, 0.0),
                 )
-                if not risk.get("approved"):
-                    self._diag(
-                        f"RISK REJECT {symbol}: "
-                        f"{risk.get('reason', 'risk guardian rejected entry')}"
-                    )
                 if risk.get("approved"):
                     used = sum(float(p.get("notional") or 0) for p in self._state.session_pairs if p.get("status") == "OPEN")
                     available = max(0.0, equity - used)
-
-                    # CA is the fixed capital allocation for each trade.
-                    # Realised profit/loss stays in account equity, but it is
-                    # not silently compounded into the next trade's allocation.
-                    # This returns the original CA to the trading cycle after
-                    # every close while preserving realised P/L separately.
+                    # The configured PQI capital is the fixed capital
+                    # allocation (CA) for each trade cycle. Realised PnL stays
+                    # in portfolio equity; it is not silently compounded into
+                    # the next trade's allocation.
                     trade_ca = max(10.0, float(self._state.trading_capital))
                     notional = min(available, trade_ca)
                     if notional >= 10:
@@ -673,13 +630,18 @@ class PQIEngine:
                             "stop_loss": risk["stop_loss"], "take_profit": risk["take_profit"],
                             "pnl": 0.0, "opened_at": utc_now().isoformat(), "closed_at": None,
                         })
+                        self._sync_trade_intelligence(symbol)
                         self._state.trades_today += 1
                         self._state.execution_log.insert(0, {
                             "time": utc_now().isoformat(), "symbol": symbol,
                             "side": decision.action, "status": "PAPER OPEN",
                             "session_id": self._state.session_id,
+                            "entry_price": round(price, 12),
+                            "stop_loss": round(float(risk["stop_loss"]), 12),
+                            "take_profit": round(float(risk["take_profit"]), 12),
                             "equity_before_entry": round(equity, 8),
                             "realised_pnl": round(realised, 8),
+                            "allocation": round(float(self._state.trading_capital), 8),
                         })
                         self._state.execution_log = self._state.execution_log[:50]
 
@@ -710,6 +672,12 @@ class PQIEngine:
             "status": "PAPER CLOSE",
             "reason": reason,
             "pnl": round(float(pair.get("pnl") or 0), 8),
+            "entry_price": pair.get("entry_price"),
+            "stop_loss": pair.get("stop_loss"),
+            "take_profit": pair.get("take_profit"),
+            "mark_price": pair.get("mark_price"),
+            "allocation": round(float(self._state.trading_capital), 8),
+            "pair_balance": round(float(self._state.trading_capital) + float(pair.get("pnl") or 0), 8),
             "session_id": self._state.session_id,
         })
         self._state.execution_log = self._state.execution_log[:50]
@@ -736,6 +704,23 @@ class PQIEngine:
         self._state.realised_pnl = realised
         self._state.unrealised_pnl = floating
         self._state.win_rate = self._calculate_win_rate()
+
+        # Keep a lightweight per-pair accounting footprint in runtime state.
+        # The configured PQI capital remains the allocation for the next cycle;
+        # the pair PnL is added to that allocation for the displayed pair
+        # balance. No decision or sizing rule is changed here.
+        for pair in self._state.session_pairs:
+            pair["allocation"] = round(float(self._state.trading_capital), 8)
+            pair["pair_pnl"] = round(float(pair.get("pnl") or 0), 8)
+            pair["pair_balance"] = round(
+                float(self._state.trading_capital) + float(pair.get("pnl") or 0), 8
+            )
+
+        open_pair = next(
+            (p for p in reversed(self._state.session_pairs) if p.get("status") == "OPEN"),
+            None,
+        )
+        self._state.paper_position = dict(open_pair) if open_pair else None
 
     def _calculate_win_rate(self):
         closed = [p for p in self._state.session_pairs if p.get("status") == "CLOSED"]
@@ -777,6 +762,9 @@ class PQIEngine:
                 "pnl": float(p.pnl or 0), "opened_at": p.opened_at.isoformat() if p.opened_at else None,
                 "closed_at": p.closed_at.isoformat() if p.closed_at else None,
                 "last_update": p.last_update.isoformat() if p.last_update else None,
+                "allocation": float(self._state.trading_capital),
+                "pair_pnl": float(p.pnl or 0),
+                "pair_balance": float(self._state.trading_capital) + float(p.pnl or 0),
             })
         self._state.open_positions = sum(1 for p in self._state.session_pairs if p.get("status") == "OPEN")
 
@@ -817,6 +805,7 @@ class PQIEngine:
                 break
             try:
                 self._set_phase("Live Trading Cycle", "SCANNING")
+                result = {}
                 if not getattr(account, "can_trade", False):
                     # Live dashboard can run the same PQI intelligence pipeline
                     # against the connected exchange without placing orders until
@@ -857,8 +846,86 @@ class PQIEngine:
                 if decision:
                     self._state.current_decision = decision.action if decision.should_execute else "WAIT"
                     self._diag(f"LIVE CONFIDENCE UPDATED: {self._state.confidence}")
+
+                    # Presentation only: expose the levels already calculated
+                    # by RiskGuardian. These values do not alter the decision.
+                    live_risk = analysis.get("risk") or {}
+                    self._state.intelligence.update({
+                        "signal": decision.action,
+                        "entry": float((snapshot.ticker or {}).get("lastPrice", 0)) if snapshot else self._state.last_price,
+                        "stop_loss": live_risk.get("stop_loss"),
+                        "take_profit": live_risk.get("take_profit"),
+                        "reward_ratio": live_risk.get("reward_ratio"),
+                        "reason": getattr(decision, "reason", None) or self._state.intelligence.get("reason"),
+                    })
+
+                    execution = (result.get("execution") if isinstance(result, dict) else None) or {}
+                    if execution.get("success"):
+                        self._state.execution_log.insert(0, {
+                            "time": utc_now().isoformat(),
+                            "symbol": execution.get("symbol") or self._state.symbol,
+                            "side": decision.action,
+                            "status": "LIVE OPEN",
+                            "entry_price": live_risk.get("entry_price") or self._state.last_price,
+                            "stop_loss": live_risk.get("stop_loss"),
+                            "take_profit": live_risk.get("take_profit"),
+                            "allocation": self._state.trading_capital,
+                        })
+                        self._state.execution_log = self._state.execution_log[:50]
                 else:
                     self._diag("LIVE cycle returned no decision")
+
+                # Telemetry only: read the real exchange balance after the
+                # execution cycle so the live dashboard reflects where the
+                # realised PnL actually resides. This does not feed back into
+                # the selected PQI capital or decision/action logic.
+                try:
+                    live_exchange = service._get_exchange(account)
+                    live_balance = await service._get_account_balance(
+                        live_exchange, account, force=True
+                    )
+                    self._state.live_account_balance = float(live_balance)
+                    self._state.portfolio_value = float(live_balance)
+
+                    from app.models.trade import Trade
+                    from app.models.trade_outcome import TradeOutcome
+                    session_row = PQISession.query.get(self._session_id) if self._session_id else None
+                    since = session_row.started_at if session_row else None
+                    if since is not None:
+                        outcomes = (
+                            TradeOutcome.query
+                            .join(Trade, TradeOutcome.trade_id == Trade.id)
+                            .filter(
+                                Trade.trading_account_id == account.id,
+                                TradeOutcome.closed_at >= since,
+                            )
+                            .all()
+                        )
+                        self._state.live_realised_pnl = round(
+                            sum(float(o.net_profit or 0) for o in outcomes), 8
+                        )
+                        self._state.realised_pnl = self._state.live_realised_pnl
+                        self._state.daily_pnl = self._state.live_realised_pnl
+
+                        for closed in (result.get("closed_positions", []) if isinstance(result, dict) else []):
+                            symbol = closed.get("symbol") or self._state.symbol
+                            reason = closed.get("reason") or "CLOSED"
+                            matching = next(
+                                (o for o in reversed(outcomes) if getattr(o.trade, "symbol", None) == symbol),
+                                None,
+                            )
+                            self._state.execution_log.insert(0, {
+                                "time": utc_now().isoformat(),
+                                "symbol": symbol,
+                                "status": "LIVE CLOSE",
+                                "reason": reason,
+                                "pnl": float(matching.net_profit) if matching is not None else 0.0,
+                                "exit_price": float(matching.exit_price) if matching is not None else None,
+                            })
+                        self._state.execution_log = self._state.execution_log[:50]
+                except Exception as telemetry_exc:
+                    self._diag(f"LIVE account telemetry unavailable: {telemetry_exc}")
+
                 self._state.current_task = "Live Trading Cycle Complete"
                 self._state.signals_analysed += 1
                 self._state.next_scan = utc_now() + timedelta(seconds=8)
