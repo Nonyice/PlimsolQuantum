@@ -22,11 +22,14 @@ class PublicMarketService:
     # One pooled client per running event loop (PQI sessions each run their
     # own loop in their own thread, so a single global client would end up
     # bound to whichever loop created it first).
-    _clients: dict[int, httpx.AsyncClient] = {}
-    _clients_lock = asyncio.Lock()
+    _clients: dict[asyncio.AbstractEventLoop, httpx.AsyncClient] = {}
+    _client_locks: dict[asyncio.AbstractEventLoop, asyncio.Lock] = {}
 
+    # Cache data is loop-independent. Do NOT keep asyncio.Lock instances in
+    # a process-global cache keyed only by request: PQI sessions can run in
+    # separate event loops/threads, and asyncio.Lock is bound to the loop
+    # that first waits on it.
     _cache: dict[tuple, tuple[float, Any]] = {}
-    _cache_locks: dict[tuple, asyncio.Lock] = {}
 
     # Cache lifetime per candle interval - short enough that data is never
     # stale by more than a fraction of one candle, long enough that a 5s
@@ -54,12 +57,19 @@ class PublicMarketService:
     @classmethod
     async def _client(cls) -> httpx.AsyncClient:
         loop = asyncio.get_running_loop()
-        key = id(loop)
-        client = cls._clients.get(key)
+        client = cls._clients.get(loop)
         if client is not None and not client.is_closed:
             return client
-        async with cls._clients_lock:
-            client = cls._clients.get(key)
+
+        # The lock is also scoped to the current event loop. Never share an
+        # asyncio.Lock between the per-session PQI event loops.
+        lock = cls._client_locks.get(loop)
+        if lock is None:
+            lock = asyncio.Lock()
+            cls._client_locks[loop] = lock
+
+        async with lock:
+            client = cls._clients.get(loop)
             if client is not None and not client.is_closed:
                 return client
             client = httpx.AsyncClient(
@@ -70,7 +80,7 @@ class PublicMarketService:
                     max_keepalive_connections=40,
                 ),
             )
-            cls._clients[key] = client
+            cls._clients[loop] = client
             return client
 
     @classmethod
@@ -87,16 +97,16 @@ class PublicMarketService:
         if hit is not None and now - hit[0] < ttl:
             return hit[1]
 
-        # Per-key lock so N concurrent callers for the same (symbol, tf)
-        # collapse into one upstream request instead of N.
-        lock = cls._cache_locks.setdefault(cache_key, asyncio.Lock())
-        async with lock:
-            hit = cls._cache.get(cache_key)
-            if hit is not None and time.monotonic() - hit[0] < ttl:
-                return hit[1]
-            data = await fetch()
-            cls._cache[cache_key] = (time.monotonic(), data)
-            return data
+        # Do not use a process-global asyncio.Lock here. Each PQI session may
+        # execute in a different event loop, so such a lock eventually raises
+        # "bound to a different event loop". A small duplicate fetch is safe;
+        # the TTL cache still prevents repeated requests on subsequent scans.
+        hit = cls._cache.get(cache_key)
+        if hit is not None and time.monotonic() - hit[0] < ttl:
+            return hit[1]
+        data = await fetch()
+        cls._cache[cache_key] = (time.monotonic(), data)
+        return data
 
     @classmethod
     async def markets(cls, exchange="binance", market_type="spot") -> list[str]:

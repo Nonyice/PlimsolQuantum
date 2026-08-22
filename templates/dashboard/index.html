@@ -3,14 +3,21 @@
 {% block content %}
 <section class="dashboard">
 
-{% if active_trial %}
 <div class="glass-card trial-banner">
-    <div><strong>TRIAL MARKET SIMULATION ACTIVE</strong><p>{{ active_trial.days_remaining }} day{% if active_trial.days_remaining != 1 %}s{% endif %} remaining · live exchange market data · paper execution only</p></div>
+    <div>
+        {% if active_trial %}
+        <strong>TRIAL MARKET SIMULATION ACTIVE</strong>
+        <p>{{ active_trial.days_remaining }} day{% if active_trial.days_remaining != 1 %}s{% endif %} remaining · live exchange market data · paper execution only</p>
+        {% elif latest_trial and latest_trial.is_expired %}
+        <strong>TRIAL AVAILABLE</strong>
+        <p>Your previous simulation has ended. Start a new PQI trial or connect an exchange for live trading.</p>
+        {% else %}
+        <strong>PQI ACCESS</strong>
+        <p>Configure a PQI trial or connect an exchange account for live trading.</p>
+        {% endif %}
+    </div>
     <div class="trial-banner-actions"><button id="add-trial-pqi" class="btn-secondary" type="button">+ ADD TRIAL</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-primary">GO LIVE</a></div>
 </div>
-{% elif latest_trial and latest_trial.is_expired %}
-<div class="glass-card"><strong>TRIAL EXPIRED</strong><p>Your previous simulation has ended.</p><a href="{{ url_for('onboarding.trial') }}" class="btn-primary">START NEW TRIAL</a></div>
-{% endif %}
 
 <div class="hero-card">
     <div>

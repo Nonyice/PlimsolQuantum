@@ -11,6 +11,7 @@ from app.extensions import db
 from app.models.pqi_session import PQISession
 from app.models.trading_account import TradingAccount
 from app.pqi.engine import engine as legacy_engine
+from app.pqi.state import PQIState
 from app.pqi.runtime import runtime_manager
 from app.services.public_market_service import PublicMarketService
 
@@ -56,7 +57,15 @@ def _runtime_for_selected():
 def state():
     runtime, selected = _runtime_for_selected()
     if runtime is None:
-        return jsonify(legacy_engine.snapshot())
+        # Never fall back to the process-global legacy engine here. That state
+        # can belong to a different authenticated user and makes a second
+        # user's PQI controls appear/disappear based on whoever used PQI last.
+        # A user with no active session gets an isolated, idle state instead.
+        idle = PQIState()
+        idle.mode = "trial" if current_user.active_trial else "live"
+        idle.current_task = "No Active PQI Session"
+        idle.current_decision = "WAITING"
+        return jsonify(idle)
     return jsonify(runtime.snapshot())
 
 

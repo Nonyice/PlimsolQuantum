@@ -216,11 +216,27 @@
     }
 
     async function addTrialSession() {
+        // The button is intentionally available to every account. If the user
+        // does not currently have an active trial, send them through the normal
+        // trial-start flow. If a trial is already active, prepare another PQI
+        // session without changing the currently running session.
         if (pageMode === 'live') {
             window.location.href = '/trading';
             return;
         }
-        if (!window.__pqiLastState || window.__pqiLastState.mode !== 'trial') return;
+        if (!window.__pqiLastState || window.__pqiLastState.mode !== 'trial') {
+            try {
+                const sessions = await json('/api/pqi/sessions');
+                const hasTrial = (sessions.sessions || []).some(s => s.mode === 'trial');
+                if (!hasTrial) {
+                    window.location.href = '/onboarding/trial';
+                    return;
+                }
+            } catch (e) {
+                window.location.href = '/onboarding/trial';
+                return;
+            }
+        }
 
         // Do not create/engage anything here. Put the existing market controls
         // into "new session" mode and let the user choose the configuration.

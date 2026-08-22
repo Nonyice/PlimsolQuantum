@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}PQI Subscription{% endblock %}
+{% block content %}
+<div class="hero-card">
+  <h1>PQI Subscription</h1>
+  <p>Choose the access period that fits your trading operation. Pay securely with Paystack or submit a bank-transfer payment for verification.</p>
+</div>
+
+{% if active_subscription %}
+<div class="glass-card" style="margin-bottom:20px">
+  <strong>Active subscription:</strong> {{ active_subscription.plan.name }} · {{ active_subscription.days_remaining }} days remaining · expires {{ active_subscription.end_date.strftime('%d %b %Y') }}.
+</div>
+{% endif %}
+
+<div class="stats-grid">
+{% for plan in plans %}
+  <div class="glass-card">
+    <h2>{{ plan.name }}</h2>
+    <div style="font-size:32px;font-weight:800;margin:12px 0">${{ '%.2f'|format(plan.price) }}</div>
+    <p>{{ plan.duration_days }} days of PQI access.</p>
+    <ul>
+      <li>✓ PQI intelligence</li><li>✓ Live market data</li><li>✓ Risk controls</li><li>✓ Trading access</li>
+    </ul>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+      <form method="post"<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> action="{{ url_for('billing.paystack_initialize', plan_id=plan.id) }}"><button class="btn-primary" type="submit">Pay with Paystack</button></form>
+      <form method="post"<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"> action="{{ url_for('billing.bank_transfer', plan_id=plan.id) }}"><button class="btn-secondary" type="submit">Bank Transfer</button></form>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<div class="glass-card" style="margin-top:20px">
+  <h2>Payment History</h2>
+  {% if payments %}
+  <div style="overflow:auto"><table class="data-table"><thead><tr><th>Reference</th><th>Plan</th><th>Method</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>
+  {% for payment in payments %}<tr><td>{{ payment.reference }}</td><td>{{ payment.plan.name }}</td><td>{{ payment.method|replace('_',' ') }}</td><td>${{ '%.2f'|format(payment.amount) }}</td><td>{{ payment.status }}</td><td>{{ payment.created_at.strftime('%d %b %Y') }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<p>No payments yet.</p>{% endif %}
+</div>
+{% endblock %}

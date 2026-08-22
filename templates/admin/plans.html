@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Subscription Plans{% endblock %}
+{% block content %}
+<div class="hero-card"><h1>Subscription Catalogue</h1><p>Current PQI commercial plans.</p></div>
+<div class="stats-grid">{% for plan in plans %}<div class="glass-card"><h2>{{ plan.name }}</h2><h3>${{ '%.2f'|format(plan.price) }}</h3><p>{{ plan.duration_days }} days · {{ plan.currency }}</p><p>{{ plan.description }}</p></div>{% endfor %}</div>
+{% endblock %}

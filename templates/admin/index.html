@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}PQI Administration{% endblock %}
+{% block content %}
+<div class="hero-card"><h1>Administration Command Center</h1><p>Subscription, payment and customer operations.</p></div>
+<div class="stats-grid">
+<div class="glass-card"><small>ACTIVE SUBSCRIPTIONS</small><h2>{{ stats.active }}</h2></div>
+<div class="glass-card"><small>PENDING PAYMENTS</small><h2>{{ stats.pending }}</h2></div>
+<div class="glass-card"><small>EXPIRED</small><h2>{{ stats.expired }}</h2></div>
+<div class="glass-card"><small>VERIFIED REVENUE</small><h2>${{ '%.2f'|format(stats.revenue) }}</h2></div>
+</div>
+<div class="stats-grid" style="margin-top:20px">
+<div class="glass-card"><h2>Payment Operations</h2><p>Review bank transfers and reconcile payment activity.</p><a class="btn-primary" href="{{ url_for('admin.payments') }}">Open Payments</a></div>
+<div class="glass-card"><h2>Customer Operations</h2><p>Search accounts, inspect subscriptions and manage customer access.</p><a class="btn-primary" href="{{ url_for('admin.customers') }}">Open Customers</a></div>
+<div class="glass-card"><h2>Plans</h2><p>Review the live subscription catalogue and commercial configuration.</p><a class="btn-primary" href="{{ url_for('admin.plans') }}">Manage Plans</a></div>
+</div>
+{% endblock %}

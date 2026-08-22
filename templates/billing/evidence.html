@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Payment Verification{% endblock %}
+{% block content %}
+<div class="hero-card"><h1>Bank Transfer Verification</h1><p>Reference <strong>{{ payment.reference }}</strong> · {{ payment.plan.name }} · ${{ '%.2f'|format(payment.amount) }}</p></div>
+<div class="glass-card">
+  <h2>Transfer Instructions</h2>
+  <p>{{ config.BANK_TRANSFER_INSTRUCTIONS or 'Complete the bank transfer using the account details supplied by PlimsolTech support, then upload your receipt below.' }}</p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Payment evidence</label>
+    <input type="file" name="evidence" accept=".pdf,.png,.jpg,.jpeg,.webp" required>
+    <button class="btn-primary" type="submit">Submit Evidence</button>
+  </form>
+</div>
+{% endblock %}
