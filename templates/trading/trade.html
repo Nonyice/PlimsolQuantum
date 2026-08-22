@@ -8,7 +8,7 @@
     </div>
 
     <div class="glass-card pqi-sessions-card">
-        <div class="section-heading"><div><h2>ACTIVE PQI SESSIONS</h2><p>Select a session without stopping the others.</p></div><div class="session-actions"><button id="add-trial-pqi" class="btn-secondary" type="button">+ ADD TRIAL</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE</a></div></div>
+        <div class="section-heading"><div><h2>ACTIVE PQI SESSIONS</h2><p>Select a session without stopping the others.</p></div><div class="session-actions"><span id="pqi-session-capacity" class="mode-badge">0 / 4 ACTIVE</span><button id="add-trial-pqi" class="btn-secondary" type="button">+ ADD TRIAL</button><a href="{{ url_for('dashboard.go_live') }}" class="btn-buy">GO LIVE</a></div></div>
         <div id="pqi-session-list" class="pqi-session-list"></div>
     </div>
 

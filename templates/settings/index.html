@@ -3,76 +3,114 @@
 {% block title %}Settings{% endblock %}
 
 {% block content %}
-
-<div class="hero-card">
-
-    <h2>PQI SETTINGS</h2>
-
-    <p>System Configuration</p>
-
-</div>
-
-<div class="stats-grid">
-
-    <div class="card live-card">
-        <h3>PQI Status</h3>
-        <span id="pqi-status" class="status-live">READY</span>
+<section class="dashboard">
+    <div class="hero-card">
+        <div>
+            <span class="eyebrow">PQI CONTROL PLANE</span>
+            <h2>PQI SETTINGS</h2>
+            <p>Comprehensive execution setup and user preferences. Engine-enforced safety limits cannot be bypassed from this screen.</p>
+        </div>
+        <span id="settings-save-status" class="mode-badge">LOCAL PREFERENCES</span>
     </div>
 
-    <div class="card live-card">
-        <h3>Exchange</h3>
-        <span id="exchange" class="live-value">Binance</span>
+    <div class="stats-grid">
+        <div class="card"><h3>PQI Status</h3><span id="pqi-status" class="status-live">READY</span></div>
+        <div class="card"><h3>Exchange</h3><span id="exchange" class="live-value">--</span></div>
+        <div class="card"><h3>Active Market</h3><span id="market" class="live-value">--</span></div>
+        <div class="card"><h3>Session Capacity</h3><span id="settings-session-capacity" class="live-value">0 / 4</span></div>
     </div>
 
-    <div class="card live-card">
-        <h3>Market</h3>
-        <span id="market" class="live-value">Spot</span>
+    <div class="glass-card">
+        <div class="section-heading"><div><h2>EXECUTION CONFIGURATION</h2><p>Controls that govern how the PQI interface presents and manages the execution workflow.</p></div></div>
+        <div class="stats-grid">
+            {% for key, title, desc in [
+                ('auto_execution', 'Auto Execution', 'Allow PQI to proceed from approved decision to execution.'),
+                ('live_scanner', 'Live Scanner', 'Continuously scan the selected market and update intelligence.'),
+                ('sl_tp', 'SL / TP Protection', 'Maintain protective stop-loss and take-profit levels on trade cycles.'),
+                ('profit_preservation', 'Profit Preservation', 'Keep realised PnL in the portfolio while reusing the configured CA.'),
+                ('session_alerts', 'Session Alerts', 'Show session-limit and pair-conflict notifications immediately.')
+            ] %}
+            <div class="card setting-card"><div><h3>{{ title }}</h3><small>{{ desc }}</small></div><button type="button" class="setting-toggle is-on" data-setting-key="{{ key }}" aria-pressed="true"><span>ON</span></button></div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="card live-card">
-        <h3>Theme</h3>
-        <span class="live-value">Neon Dark</span>
+    <div class="glass-card">
+        <div class="section-heading"><div><h2>INTELLIGENCE & RISK PREFERENCES</h2><p>Presentation and analysis preferences for the PQI intelligence stack.</p></div></div>
+        <div class="stats-grid">
+            {% for key, title, desc in [
+                ('decision_engine', 'Decision Engine', 'Expose the current BUY / SELL / WAIT decision and rationale.'),
+                ('confidence_feed', 'Confidence Feed', 'Display live confidence updates across PQI pages.'),
+                ('risk_guardian', 'Risk Guardian', 'Display live risk approval, exposure and protection telemetry.'),
+                ('learning_engine', 'Learning Engine', 'Keep learning and performance telemetry visible when available.'),
+                ('market_feed', 'Market Feed', 'Keep exchange ticker and candle telemetry visible.')
+            ] %}
+            <div class="card setting-card"><div><h3>{{ title }}</h3><small>{{ desc }}</small></div><button type="button" class="setting-toggle is-on" data-setting-key="{{ key }}" aria-pressed="true"><span>ON</span></button></div>
+            {% endfor %}
+        </div>
     </div>
 
-</div>
+    <div class="glass-card">
+        <div class="section-heading"><div><h2>TRADING SESSION RULES</h2><p>These are enforced by the backend and are not browser-only preferences.</p></div></div>
+        <div class="stats-grid">
+            <div class="card"><h3>Maximum Active Sessions</h3><span class="live-value">4</span></div>
+            <div class="card"><h3>Spot Pair Rule</h3><span class="live-value">1 active Spot session / pair</span></div>
+            <div class="card"><h3>Futures Pair Rule</h3><span class="live-value">1 active Futures session / pair</span></div>
+            <div class="card"><h3>Cross-Market</h3><span class="live-value">Spot + Futures allowed</span></div>
+        </div>
+    </div>
 
-<div class="glass-card">
+    <div class="glass-card">
+        <div class="section-heading"><div><h2>DISPLAY & NOTIFICATION PREFERENCES</h2><p>Saved locally in this browser and restored automatically.</p></div></div>
+        <div class="stats-grid">
+            {% for key, title, desc in [
+                ('compact_tables', 'Compact Tables', 'Use tighter table presentation where supported.'),
+                ('session_tabs', 'Session Tabs', 'Keep the active-session selector visible.'),
+                ('error_feedback', 'Error Feedback', 'Show actionable PQI errors and validation messages.'),
+                ('market_notifications', 'Market Notifications', 'Show connection and market-feed status changes.')
+            ] %}
+            <div class="card setting-card"><div><h3>{{ title }}</h3><small>{{ desc }}</small></div><button type="button" class="setting-toggle is-on" data-setting-key="{{ key }}" aria-pressed="true"><span>ON</span></button></div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}
 
-    <h2>PQI CONFIGURATION</h2>
+{% block scripts %}
+<script>
+(function () {
+    const KEY = 'pqi.preferences.v1';
+    const defaults = {};
+    document.querySelectorAll('.setting-toggle').forEach(btn => { defaults[btn.dataset.settingKey] = true; });
+    let prefs = {};
+    try { prefs = {...defaults, ...(JSON.parse(localStorage.getItem(KEY) || '{}'))}; } catch (_) { prefs = {...defaults}; }
 
-    <table class="table">
+    function paint(btn) {
+        const on = prefs[btn.dataset.settingKey] !== false;
+        btn.classList.toggle('is-on', on);
+        btn.classList.toggle('is-off', !on);
+        btn.setAttribute('aria-pressed', String(on));
+        btn.querySelector('span').textContent = on ? 'ON' : 'OFF';
+    }
+    document.querySelectorAll('.setting-toggle').forEach(btn => {
+        paint(btn);
+        btn.addEventListener('click', () => {
+            const key = btn.dataset.settingKey;
+            prefs[key] = prefs[key] === false;
+            localStorage.setItem(KEY, JSON.stringify(prefs));
+            paint(btn);
+            const status = document.getElementById('settings-save-status');
+            if (status) status.textContent = 'PREFERENCES SAVED';
+        });
+    });
 
-        <tbody>
-
-            <tr>
-                <td>Auto Execution</td>
-                <td>Enabled</td>
-            </tr>
-
-            <tr>
-                <td>Risk Guardian</td>
-                <td>Enabled</td>
-            </tr>
-
-            <tr>
-                <td>Live Scanner</td>
-                <td>Enabled</td>
-            </tr>
-
-            <tr>
-                <td>Decision Engine</td>
-                <td>Enabled</td>
-            </tr>
-
-            <tr>
-                <td>Learning Engine</td>
-                <td>Enabled</td>
-            </tr>
-
-        </tbody>
-
-    </table>
-
-</div>
-
+    fetch('/api/pqi/sessions').then(r => r.json()).then(data => {
+        const el = document.getElementById('settings-session-capacity');
+        if (el) el.textContent = `${data.active_session_count || 0} / ${data.max_active_sessions || 4}`;
+    }).catch(() => {});
+})();
+</script>
+<style>
+.setting-card{display:flex;align-items:center;justify-content:space-between;gap:18px}.setting-card h3{margin-bottom:5px}.setting-card small{display:block;color:var(--muted);line-height:1.45}.setting-toggle{min-width:68px;border:1px solid var(--border);border-radius:999px;padding:7px 12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700}.setting-toggle.is-on{border-color:var(--primary);color:var(--primary)}.setting-toggle.is-off{opacity:.65}
+</style>
 {% endblock %}

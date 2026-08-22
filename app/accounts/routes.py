@@ -20,7 +20,14 @@ def index():
         .order_by(TradingAccount.created_at.desc())
         .all()
     )
-    return render_template("accounts/index.html", accounts=accounts)
+    return render_template(
+        "accounts/index.html",
+        accounts=accounts,
+        connected_count=len(accounts),
+        trading_enabled_count=sum(1 for a in accounts if a.can_trade),
+        spot_count=sum(1 for a in accounts if getattr(a.market_type, "value", str(a.market_type)).lower() == "spot"),
+        futures_count=sum(1 for a in accounts if getattr(a.market_type, "value", str(a.market_type)).lower() == "futures"),
+    )
 
 
 @accounts_bp.route("/add", methods=["GET", "POST"])

@@ -83,7 +83,14 @@ def session_list():
             "task": getattr(state_obj, "current_task", "--") if state_obj else "--",
             "selected": bool(selected and s.id == selected.id),
         })
-    return jsonify({"success": True, "sessions": items, "selected_session_id": str(selected.id) if selected else None})
+    return jsonify({
+        "success": True,
+        "sessions": items,
+        "selected_session_id": str(selected.id) if selected else None,
+        "active_session_count": len(items),
+        "max_active_sessions": 4,
+        "remaining_session_slots": max(0, 4 - len(items)),
+    })
 
 
 @pqi_bp.route("/api/pqi/session/select", methods=["POST"])
@@ -186,6 +193,12 @@ def configure():
         if new_session:
             if exchange not in {"binance", "bybit"}:
                 return jsonify({"success": False, "error": "Unsupported exchange."}), 400
+            try:
+                legacy_engine._validate_new_session(current_user.id, market, market_type)
+                db.session.rollback()
+            except ValueError as exc:
+                db.session.rollback()
+                return jsonify({"success": False, "error": str(exc)}), 409
             return jsonify({
                 "success": True,
                 "new_session": True,
@@ -198,6 +211,11 @@ def configure():
             })
 
         if selected and selected.mode == "trial":
+            try:
+                legacy_engine._validate_new_session(current_user.id, market, market_type, exclude_session_id=selected.id)
+            except ValueError as exc:
+                db.session.rollback()
+                return jsonify({"success": False, "error": str(exc)}), 409
             runtime = runtime_manager.ensure(selected, current_app._get_current_object(), current_user.id)
             runtime.configure(exchange, market, market_type, capital_value)
             selected.exchange = exchange
@@ -218,6 +236,11 @@ def configure():
     if capital_value > float(info.get("available", 0)):
         return jsonify({"success": False, "error": f"Insufficient capital. Available USDT: ${float(info.get('available', 0)):,.2f}."}), 400
     if selected and selected.mode == "live":
+        try:
+            legacy_engine._validate_new_session(current_user.id, market, market_type, exclude_session_id=selected.id)
+        except ValueError as exc:
+            db.session.rollback()
+            return jsonify({"success": False, "error": str(exc)}), 409
         runtime = runtime_manager.ensure(selected, current_app._get_current_object(), current_user.id)
         runtime.configure(exchange, market, market_type, capital_value)
         selected.exchange = exchange
@@ -282,21 +305,28 @@ def engage():
             return jsonify({"success": False, "error": f"Unable to verify exchange capital: {exc}"}), 502
         target = None if new_session or not selected or selected.mode != "live" else selected
 
-    if target is not None:
-        runtime = runtime_manager.ensure(target, current_app._get_current_object(), current_user.id)
-        runtime.configure(exchange, market, market_type, capital_value)
-        result = runtime.engage(exchange, market, exchange_id, market_type, live_account, capital_value, current_user.id, current_app._get_current_object(), new_session=False)
-    else:
-        runtime = __import__("app.pqi.runtime", fromlist=["runtime_manager"]).runtime_manager
-        # Temporary engine creates the persistent record, then is registered under its id.
-        from app.pqi.engine import PQIEngine
-        from app.pqi.state import PQIState
-        temp = PQIEngine(state=PQIState())
-        result = temp.engage(exchange, market, exchange_id, market_type, live_account, capital_value, current_user.id, current_app._get_current_object(), new_session=True)
-        session_id = result.session_id
-        runtime._engines[str(session_id)] = temp
-        session["pqi_session_id"] = str(session_id)
-        return jsonify({"success": True, "state": result})
+    try:
+        if target is not None:
+            runtime = runtime_manager.ensure(target, current_app._get_current_object(), current_user.id)
+            runtime.configure(exchange, market, market_type, capital_value)
+            result = runtime.engage(exchange, market, exchange_id, market_type, live_account, capital_value, current_user.id, current_app._get_current_object(), new_session=False)
+        else:
+            runtime = __import__("app.pqi.runtime", fromlist=["runtime_manager"]).runtime_manager
+            # Temporary engine creates the persistent record, then is registered under its id.
+            from app.pqi.engine import PQIEngine
+            from app.pqi.state import PQIState
+            temp = PQIEngine(state=PQIState())
+            result = temp.engage(exchange, market, exchange_id, market_type, live_account, capital_value, current_user.id, current_app._get_current_object(), new_session=True)
+            session_id = result.session_id
+            runtime._engines[str(session_id)] = temp
+            session["pqi_session_id"] = str(session_id)
+            return jsonify({"success": True, "state": result})
+    except ValueError as exc:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(exc)}), 409
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"success": False, "error": f"Unable to engage PQI: {exc}"}), 500
 
     session["pqi_session_id"] = str(result.session_id)
     return jsonify({"success": True, "state": result})

@@ -1,1 +1,138 @@
-.sidebar{width:var(--sidebar);background:#090d14;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:space-between;padding:25px 0;flex-shrink:0;min-height:100vh;box-sizing:border-box}.sidebar-top{min-height:0}.sidebar::-webkit-scrollbar{width:6px}.sidebar::-webkit-scrollbar-thumb{background:rgba(0,245,255,.25);border-radius:10px}.nav-item{display:flex;align-items:center;gap:15px;padding:14px 25px;color:var(--muted);transition:.25s;white-space:nowrap}.nav-item:hover,.nav-item.active{background:rgba(0,245,255,.08);color:white;border-left:4px solid var(--primary)}.sidebar-bottom{flex-shrink:0}.version{padding:15px;text-align:center;color:var(--muted);}
+/* PQI sidebar — preserve the desktop navigation footprint while making the mobile drawer robust. */
+.sidebar {
+    width: var(--sidebar);
+    background: #090d14;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 25px 0;
+    flex: 0 0 var(--sidebar);
+    min-height: 100vh;
+    height: 100vh;
+    box-sizing: border-box;
+    position: sticky;
+    top: 0;
+    overflow: hidden;
+    z-index: 9999;
+}
+
+.sidebar-top {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 15px;
+}
+
+.sidebar-top::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-top::-webkit-scrollbar-thumb {
+    background: rgba(0, 245, 255, .25);
+    border-radius: 10px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 14px 25px;
+    color: var(--muted);
+    transition: .25s;
+    white-space: nowrap;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background: rgba(0, 245, 255, .08);
+    color: white;
+    border-left: 4px solid var(--primary);
+}
+
+.sidebar-bottom {
+    flex: 0 0 auto;
+    width: 100%;
+    padding-top: 15px;
+}
+
+.version {
+    width: 100%;
+    padding: 15px 10px 5px;
+    text-align: center;
+    color: var(--muted);
+    border-top: 1px solid rgba(255,255,255,.04);
+}
+
+.version strong,
+.version small {
+    display: block;
+}
+
+.version strong {
+    color: var(--primary);
+}
+
+.sidebar-close {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: min(270px, 86vw);
+        flex-basis: auto;
+        height: 100dvh;
+        min-height: 100dvh;
+        padding: 58px 0 18px;
+        transform: translateX(-105%);
+        transition: transform .25s ease;
+        overflow: hidden;
+        box-shadow: 10px 0 35px rgba(0,0,0,.45);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-top {
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding-bottom: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sidebar-bottom {
+        margin-top: auto;
+    }
+
+    .nav-item {
+        padding: 13px 20px;
+    }
+
+    .sidebar-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 38px;
+        height: 38px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #111a29;
+        color: var(--primary);
+        font-size: 28px;
+        line-height: 1;
+        z-index: 2;
+    }
+
+    .sidebar-close:hover {
+        background: rgba(0,245,255,.08);
+        color: #fff;
+    }
+}

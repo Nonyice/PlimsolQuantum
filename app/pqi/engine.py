@@ -20,6 +20,7 @@ from app.intelligence.volume_engine import VolumeEngine
 from app.models.market_snapshot import MarketSnapshot, TimeframeData
 from app.models.pqi_session import PQISession
 from app.models.pqi_session_pair import PQISessionPair
+from app.models.user import User
 from app.pqi import utc_now
 from app.pqi.state import PQIState
 from app.services.public_market_service import PublicMarketService
@@ -34,6 +35,7 @@ class PQIEngine:
     """
 
     MAX_PAIRS = 3
+    MAX_ACTIVE_SESSIONS = 4
     ANALYSIS_TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h")
     CHART_TIMEFRAMES = ("5m", "15m", "1h", "4h", "1d")
     MARKET_TIMEOUT = 30
@@ -136,6 +138,55 @@ class PQIEngine:
                 self._state.portfolio_value = capital
         return self._state
 
+    @classmethod
+    def _validate_new_session(cls, user_id, symbol, market_type, exclude_session_id=None):
+        """Enforce the account-wide PQI session and pair/mode limits.
+
+        The user row is locked by the caller so concurrent engage requests cannot
+        both observe the same available session slot. A pair may have one active
+        session per market type: Spot and Futures are independent.
+        """
+        from app.extensions import db
+
+        user = db.session.query(User).filter(User.id == user_id).with_for_update().first()
+        if user is None:
+            raise ValueError("Authenticated user could not be found.")
+
+        active_query = PQISession.query.filter_by(user_id=user_id, status="ACTIVE")
+        if exclude_session_id is not None:
+            active_query = active_query.filter(PQISession.id != exclude_session_id)
+
+        active_count = active_query.count()
+        if active_count >= cls.MAX_ACTIVE_SESSIONS:
+            raise ValueError(
+                f"Maximum of {cls.MAX_ACTIVE_SESSIONS} active PQI sessions reached. "
+                "Stop an existing session before opening another."
+            )
+
+        symbol = (symbol or "").upper().replace("/", "")
+        market_type = (market_type or "spot").lower()
+        conflict = (
+            PQISessionPair.query
+            .join(PQISession, PQISession.id == PQISessionPair.session_id)
+            .filter(
+                PQISession.user_id == user_id,
+                PQISession.status == "ACTIVE",
+                PQISession.market_type == market_type,
+                PQISessionPair.symbol == symbol,
+            )
+        )
+        if exclude_session_id is not None:
+            conflict = conflict.filter(PQISession.id != exclude_session_id)
+
+        existing = conflict.first()
+        if existing:
+            opposite = "Futures" if market_type == "spot" else "Spot"
+            raise ValueError(
+                f"{symbol} already has an active {market_type.upper()} PQI session. "
+                f"You cannot open another {market_type.upper()} session for this pair, "
+                f"but {opposite} is allowed if an active session slot is available."
+            )
+
     def engage(self, exchange, market, exchange_id="", market_type="spot", live_account=None, capital=None, user_id=None, app=None, new_session=False):
         with self._lock:
             self._user_id = user_id or self._user_id
@@ -158,6 +209,17 @@ class PQIEngine:
                     .order_by(PQISession.started_at.desc())
                     .first()
                 )
+
+            # Always validate the pair/mode before an engage can create or
+            # reconfigure an active session. Excluding the target session keeps
+            # normal re-engagement on the same pair valid while preventing two
+            # active sessions from taking the same pair in the same market type.
+            self._validate_new_session(
+                self._user_id,
+                self._state.market,
+                self._state.market_type,
+                exclude_session_id=session_obj.id if session_obj is not None else None,
+            )
 
             if not session_obj:
                 session_obj = PQISession(
@@ -697,6 +759,7 @@ class PQIEngine:
         floating = self._floating_pnl()
         equity = max(0.0, self._state.trading_capital + realised + floating)
         used = sum(float(p.get("notional") or 0) for p in self._state.session_pairs if p.get("status") == "OPEN")
+        self._state.risk_exposure = round((used / equity) * 100.0, 2) if equity > 0 else 0.0
         self._state.daily_pnl = realised + floating
         self._state.portfolio_value = equity
         self._state.available_capital = max(0.0, equity - used)

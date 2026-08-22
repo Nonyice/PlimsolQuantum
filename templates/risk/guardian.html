@@ -6,7 +6,7 @@
 
 <div class="glass-card">
 
-<h2>Risk Guardian</h2>
+<div class="section-heading"><div><h2>RISK GUARDIAN</h2><p>Live risk telemetry for the selected PQI session. Risk Guardian remains the execution gate.</p></div><span id="risk-status" class="mode-badge">WAITING</span></div>
 
 <div class="stats-grid">
 
@@ -38,7 +38,7 @@
 
 <h3>Leverage</h3>
 
-<span id="leverage">1x</span>
+<span id="leverage">--</span>
 
 </div>
 
@@ -47,3 +47,4 @@
 </div>
 
 {% endblock %}
+<div class="glass-card"><h2>RISK DECISION</h2><table class="table"><tbody><tr><td>Active Market</td><td id="risk-market">--</td></tr><tr><td>Market Type</td><td id="risk-market-type">--</td></tr><tr><td>Decision</td><td id="risk-decision">WAITING</td></tr><tr><td>Open Positions</td><td id="risk-open-positions">0</td></tr><tr><td>Guardian Reason</td><td id="risk-reason">--</td></tr></tbody></table></div>

@@ -250,9 +250,20 @@
         } catch (e) { alert(e.message); }
     }
 
-    function renderSessions(items) {
+    function renderSessions(items, meta = {}) {
         const host = $('pqi-session-list');
         if (!host) return;
+        const max = Number(meta.max_active_sessions || 4);
+        const count = Number(meta.active_session_count ?? items.length);
+        const remaining = Math.max(0, max - count);
+        set('pqi-session-capacity', `${count} / ${max} ACTIVE`);
+        const addButton = $('add-trial-pqi');
+        if (addButton) {
+            addButton.disabled = count >= max;
+            addButton.title = count >= max
+                ? `Maximum of ${max} active PQI sessions reached.`
+                : `Open another PQI session (${remaining} slot${remaining === 1 ? '' : 's'} available).`;
+        }
         host.innerHTML = '';
         if (!items.length) {
             host.innerHTML = '<span class="session-empty">No active PQI sessions</span>';
@@ -272,7 +283,7 @@
     async function loadSessions() {
         try {
             const data = await json('/api/pqi/sessions');
-            renderSessions(data.sessions || []);
+            renderSessions(data.sessions || [], data);
         } catch (e) { console.error('PQI sessions:', e); }
     }
 
@@ -334,7 +345,14 @@
         set('realised-pnl', money(state.realised_pnl));
         set('unrealised-pnl', money(state.unrealised_pnl));
         const position = state.paper_position, body = $('positions-table');
-        if (body && body.closest('.dashboard') === null) body.innerHTML = position ? `<tr><td>${position.symbol}</td><td>${position.side}</td><td>${Number(position.quantity || 0).toFixed(6)}</td><td>${money(position.entry_price)}</td><td>${money(position.mark_price)}</td><td>${money(position.stop_loss)}</td><td>${money(position.take_profit)}</td><td>${money(position.pnl)}</td><td>OPEN</td></tr>` : '<tr><td colspan="9">No open PQI position.</td></tr>';
+        if (body) {
+            const rows = (state.session_pairs || []).filter(p => p.status === 'OPEN');
+            if (body.closest('.dashboard')) {
+                body.innerHTML = position ? `<tr><td>${position.symbol}</td><td>${position.side || '--'}</td><td>${money(position.entry_price)}</td><td>${money(position.mark_price)}</td><td>${money(position.pnl)}</td></tr>` : '<tr><td colspan="5">No active PQI position.</td></tr>';
+            } else {
+                body.innerHTML = rows.length ? rows.map(p => `<tr><td>${p.symbol}</td><td>${p.side || '--'}</td><td>${money(p.entry_price)}</td><td>${money(p.mark_price)}</td><td>${money(p.stop_loss)}</td><td>${money(p.take_profit)}</td><td>${money(p.pnl)}</td><td>${Number(p.quantity || 0).toFixed(6)}</td><td>${p.status}</td></tr>`).join('') : '<tr><td colspan="9">No open PQI positions.</td></tr>';
+            }
+        }
         const pairs = $('pair-performance-body');
         if (pairs) {
             const items = state.session_pairs || [];
@@ -342,7 +360,7 @@
         }
         const footprints = $('trade-footprints-body');
         if (footprints) {
-            const log = (state.execution_log || []).filter(x => x.status === 'PAPER OPEN' || x.status === 'PAPER CLOSE');
+            const log = (state.execution_log || []).filter(x => x.status === 'PAPER OPEN' || x.status === 'PAPER CLOSE' || x.status === 'LIVE OPEN' || x.status === 'LIVE CLOSE');
             footprints.innerHTML = log.length ? log.slice(0, 20).map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${x.symbol || '--'}</td><td>${x.status || '--'}</td><td>${x.reason || '--'}</td><td>${x.entry_price ? money(x.entry_price) : '--'}</td><td>${x.stop_loss ? money(x.stop_loss) : '--'}</td><td>${x.take_profit ? money(x.take_profit) : '--'}</td><td>${money(x.pnl)}</td></tr>`).join('') : '<tr><td colspan="8">No SL/TP footprint recorded yet.</td></tr>';
         }
     }
@@ -352,6 +370,46 @@
         set('exec-risk', state.connection_status === 'ERROR' ? 'BLOCKED' : (state.mode === 'live' ? (state.exchange_connected ? 'MONITORED' : 'CONNECTING') : 'PAPER'));
         const log = $('execution-log');
         if (log && state.execution_log) log.innerHTML = state.execution_log.map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${state.exchange}</td><td>${x.symbol || state.market}</td><td>${x.side || '--'}</td><td>${x.status || '--'}</td></tr>`).join('');
+
+        const orders = $('orders-table');
+        if (orders) {
+            const entries = state.execution_log || [];
+            orders.innerHTML = entries.length ? entries.slice(0, 30).map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${x.symbol || state.market || '--'}</td><td>${x.status || '--'}</td><td>${x.side || '--'}</td><td>${x.entry_price ? money(x.entry_price) : '--'}</td><td>${x.stop_loss ? money(x.stop_loss) : '--'}</td><td>${x.take_profit ? money(x.take_profit) : '--'}</td><td>${x.status || '--'}</td></tr>`).join('') : '<tr><td colspan="8">No PQI order events yet.</td></tr>';
+        }
+
+        set('risk', `${Number(state.risk_exposure || 0).toFixed(2)}%`);
+        set('drawdown', `${Math.max(0, state.starting_capital ? ((state.starting_capital - state.portfolio_value) / state.starting_capital) * 100 : 0).toFixed(2)}%`);
+        set('exposure', `${Number(state.risk_exposure || 0).toFixed(2)}%`);
+        set('leverage', state.market_type === 'futures' ? 'Risk cap 20x' : '1x');
+        set('risk-market', state.market || '--'); set('risk-market-type', (state.market_type || '--').toUpperCase()); set('risk-decision', state.current_decision || 'WAITING'); set('risk-open-positions', state.open_positions || 0); set('risk-reason', (state.intelligence || {}).reason || state.current_task || '--'); set('risk-status', state.status || 'WAITING');
+
+        set('signals', state.signals_analysed || 0);
+        set('signal-market', state.market || '--');
+        const signalRows = $('signals-table');
+        if (signalRows) {
+            const signalEvents = (state.activity || []).filter(x => /confidence updated|signal|decision/i.test(String(x.message || '')));
+            signalRows.innerHTML = signalEvents.length ? signalEvents.slice(0, 20).map(x => `<tr><td>${new Date(x.time).toLocaleTimeString()}</td><td>${state.market || '--'}</td><td>${Number(state.confidence || 0).toFixed(2)}%</td><td>${state.current_decision || '--'}</td><td>${state.market_status || '--'}</td></tr>`).join('') : '<tr><td colspan="5">No signal event recorded yet.</td></tr>';
+        }
+
+        const closed = (state.session_pairs || []).filter(p => p.status === 'CLOSED').length;
+        const candles = state.candles || [];
+        const first = candles[0]?.time, last = candles[candles.length - 1]?.time;
+        set('test-period', first && last ? `${new Date(first).toLocaleDateString()} – ${new Date(last).toLocaleDateString()}` : '--');
+        set('bt-return', 'NOT RUN'); set('bt-winrate', candles.length); set('bt-drawdown', state.market || '--'); set('bt-sharpe', closed); set('bt-score', candles.length ? 'READY' : 'WAITING');
+        const bt = $('backtest-table');
+        if (bt) bt.innerHTML = `<tr><td>${state.market || '--'}</td><td>${(state.market_type || '--').toUpperCase()}</td><td>${candles.length}</td><td>${closed}</td><td>${candles.length ? 'DATA READY' : 'WAITING'}</td></tr>`;
+        set('backtest-note', candles.length ? `Historical market data is loaded for ${state.market || 'the active market'}. No backtest result is fabricated until a historical test is actually executed.` : 'Waiting for historical market data.');
+
+        const closedPnls = (state.session_pairs || []).filter(p => p.status === 'CLOSED').map(p => Number(p.pnl || 0));
+        const wins = closedPnls.filter(v => v > 0).reduce((a,b) => a+b, 0);
+        const losses = Math.abs(closedPnls.filter(v => v < 0).reduce((a,b) => a+b, 0));
+        const profitFactor = losses > 0 ? wins / losses : (wins > 0 ? '∞' : 0);
+        const dd = Math.max(0, state.starting_capital ? ((state.starting_capital - state.portfolio_value) / state.starting_capital) * 100 : 0);
+        set('total-return', `${state.starting_capital ? (((state.portfolio_value - state.starting_capital) / state.starting_capital) * 100).toFixed(2) : '0.00'}%`);
+        set('winrate', `${Number(state.win_rate || 0).toFixed(2)}%`); set('trades', state.trades_today || 0); set('profit-factor', typeof profitFactor === 'string' ? profitFactor : Number(profitFactor).toFixed(2)); set('drawdown', `${dd.toFixed(2)}%`); set('health', state.status === 'ERROR' ? 'ERROR' : state.status === 'ACTIVE' ? 'ACTIVE' : state.status || 'WAITING');
+        const report = $('report-table');
+        if (report) report.innerHTML = `<tr><td>${new Date().toLocaleDateString()}</td><td>${state.trades_today || 0}</td><td>${Number(state.win_rate || 0).toFixed(2)}%</td><td>${money(state.daily_pnl || 0)}</td><td>${state.starting_capital ? (((state.portfolio_value-state.starting_capital)/state.starting_capital)*100).toFixed(2)+'%' : '0%'}</td></tr>`;
+        set('report-note', `Live performance snapshot · ${state.market || '--'} · ${(state.market_type || '--').toUpperCase()} · ${state.status || 'WAITING'}`);
     }
 
     document.addEventListener('DOMContentLoaded', () => {

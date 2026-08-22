@@ -15,32 +15,32 @@
 <div class="stats-grid">
 
     <div class="card live-card">
-        <h3>Test Period</h3>
+        <h3>Historical Window</h3>
         <span id="test-period" class="live-value">--</span>
     </div>
 
     <div class="card live-card">
-        <h3>Net Return</h3>
-        <span id="bt-return" class="live-value">0%</span>
+        <h3>Backtest Status</h3>
+        <span id="bt-return" class="live-value">NOT RUN</span>
     </div>
 
     <div class="card live-card">
-        <h3>Win Rate</h3>
-        <span id="bt-winrate" class="live-value">0%</span>
+        <h3>Historical Candles</h3>
+        <span id="bt-winrate" class="live-value">0</span>
     </div>
 
     <div class="card live-card">
-        <h3>Max Drawdown</h3>
-        <span id="bt-drawdown" class="live-value">0%</span>
+        <h3>Active Market</h3>
+        <span id="bt-drawdown" class="live-value">--</span>
     </div>
 
     <div class="card live-card">
-        <h3>Sharpe Ratio</h3>
-        <span id="bt-sharpe" class="live-value">0.00</span>
+        <h3>Closed Trade Cycles</h3>
+        <span id="bt-sharpe" class="live-value">0</span>
     </div>
 
     <div class="card live-card">
-        <h3>PQI Score</h3>
+        <h3>Engine Readiness</h3>
         <span id="bt-score" class="status-live">--</span>
     </div>
 
@@ -48,25 +48,23 @@
 
 <div class="glass-card">
 
-    <h2>BACKTEST SUMMARY</h2>
+    <h2>BACKTEST DATA CONSOLE</h2><p id="backtest-note">No historical test has been executed yet. This view shows the live data available to the backtesting layer without inventing results.</p>
 
     <table class="table">
 
         <thead>
 
             <tr>
-                <th>Strategy Model</th>
-                <th>Trades</th>
-                <th>Win %</th>
-                <th>Return</th>
-                <th>Score</th>
+                <th>Market</th>
+                <th>Market Type</th>
+                <th>Candles</th>
+                <th>Closed Cycles</th>
+                <th>Status</th>
             </tr>
 
         </thead>
 
-        <tbody id="backtest-table">
-
-        </tbody>
+        <tbody id="backtest-table"><tr><td colspan="5">Waiting for the active PQI session.</td></tr></tbody>
 
     </table>
 
